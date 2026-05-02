@@ -23,7 +23,9 @@ concurrency:
 jobs:
   deploy-preview:
     name: Deploy Preview
-    if: github.event_name == 'pull_request' && github.event.pull_request.draft == false
+    if: |
+      (github.event_name == 'pull_request' && github.event.pull_request.draft == false) ||
+      (github.event_name == 'push' && github.ref == 'refs/heads/dev')
     runs-on: ubuntu-latest
     env:
       VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
