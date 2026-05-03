@@ -1,31 +1,38 @@
-# create-checkout-session (scaffold)
+# create-checkout-session
 
-Funcao edge para iniciar Checkout Session de assinatura no Stripe.
+Edge Function que cria uma Stripe Checkout Session (assinatura) para os planos `pro` e `studio`.
 
-## Entrada esperada
+## Entrada (POST JSON)
 
 ```json
 {
   "plan": "pro",
-  "userId": "uuid",
+  "userId": "uuid-do-auth-user",
   "userEmail": "email@dominio.com",
-  "successUrl": "https://app.exemplo.com?billing=success",
-  "cancelUrl": "https://app.exemplo.com?billing=cancel"
+  "successUrl": "https://insanefit.vercel.app?billing=success",
+  "cancelUrl": "https://insanefit.vercel.app?billing=cancel"
 }
 ```
 
-## Variaveis recomendadas
+## Regras de seguranca
 
+- Exige `Authorization: Bearer <jwt>` valido.
+- O `userId` do payload precisa ser igual ao `user.id` do token.
+- Nao aceita URLs de redirecionamento invalidas.
+
+## Variaveis de ambiente
+
+- `SUPABASE_URL`
+- `SUPABASE_SERVICE_ROLE_KEY`
 - `STRIPE_SECRET_KEY`
 - `STRIPE_PRICE_PRO`
 - `STRIPE_PRICE_STUDIO`
 
-## Proximo passo
-
-Implementar criacao de Checkout Session no modo `subscription` e retornar:
+## Resposta de sucesso
 
 ```json
-{ "url": "https://checkout.stripe.com/..." }
+{
+  "url": "https://checkout.stripe.com/...",
+  "sessionId": "cs_test_..."
+}
 ```
-
-Depois, criar webhook Stripe para sincronizar `trainer_profiles` com status da assinatura.

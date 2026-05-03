@@ -127,8 +127,17 @@ Novos usuarios recebem role `trainer` automaticamente via trigger.
 
 Para ativar pagamento real no Stripe:
 
-1. Criar a edge function `create-checkout-session` no Supabase.
-2. Na function, criar `Checkout Session` de assinatura no Stripe Billing.
-3. Atualizar `trainer_profiles` via webhook Stripe (`customer.subscription.updated`).
+1. Publicar edge function `create-checkout-session`.
+2. Publicar edge function `stripe-webhook`.
+3. Configurar secrets Stripe/Supabase (ver `docs/environment-variables.md`).
+4. Criar endpoint webhook no Stripe apontando para `stripe-webhook`.
+5. Validar no Stripe sandbox: checkout, atualizacao, cancelamento e renovacao.
+
+Deploy das funcoes:
+
+```bash
+supabase functions deploy create-checkout-session
+supabase functions deploy stripe-webhook
+```
 [![CI](https://github.com/insanefit/insanefit/actions/workflows/ci.yml/badge.svg?branch=dev)](https://github.com/insanefit/insanefit/actions/workflows/ci.yml)
 [![CD Vercel](https://github.com/insanefit/insanefit/actions/workflows/cd-vercel.yml/badge.svg?branch=dev)](https://github.com/insanefit/insanefit/actions/workflows/cd-vercel.yml)

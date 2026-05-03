@@ -45,6 +45,29 @@ export SUPABASE_ACCESS_TOKEN="sbp_xxx"
 npm run supabase:types
 ```
 
+## Edge Functions (Stripe)
+
+Variaveis para as funcoes `create-checkout-session` e `stripe-webhook`:
+
+- `SUPABASE_URL`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `STRIPE_SECRET_KEY`
+- `STRIPE_WEBHOOK_SECRET`
+- `STRIPE_PRICE_PRO`
+- `STRIPE_PRICE_STUDIO`
+
+Exemplo de setup:
+
+```bash
+supabase secrets set \
+  SUPABASE_URL="https://<project-ref>.supabase.co" \
+  SUPABASE_SERVICE_ROLE_KEY="<service-role-key>" \
+  STRIPE_SECRET_KEY="<stripe-secret>" \
+  STRIPE_WEBHOOK_SECRET="<stripe-webhook-secret>" \
+  STRIPE_PRICE_PRO="<price_id_pro>" \
+  STRIPE_PRICE_STUDIO="<price_id_studio>"
+```
+
 ## Boas praticas
 
 - Nunca commitar `.env` no git.
