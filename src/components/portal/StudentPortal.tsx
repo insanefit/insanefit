@@ -13,6 +13,7 @@ import { inferDemoMediaType } from '../../utils/urlUtils'
 import type { ExerciseVideoAttachment } from '../../types/video'
 import { getExerciseVideoAttachment } from '../../utils/exerciseUtils'
 import { normalizeWorkoutDay, normalizeWorkoutRoutine } from '../../utils/workoutProtocol'
+import { readOfflineJson, writeOfflineJson } from '../../lib/offlineStore'
 
 type ExerciseSeriesStep = {
   id: string
@@ -545,17 +546,58 @@ export function StudentPortal() {
 
   useEffect(() => {
     if (typeof window === 'undefined') return
+
+    let cancelled = false
+    const hydrateFromIndexedDb = async () => {
+      const [savedProgress, savedThumbs, savedHistory] = await Promise.all([
+        readOfflineJson<SeriesProgressByStudent>(progressStorageKey),
+        readOfflineJson<ThumbnailCache>(thumbnailStorageKey),
+        readOfflineJson<SeriesHistoryByStudent>(progressHistoryStorageKey),
+      ])
+
+      if (cancelled) return
+
+      if (savedProgress) {
+        setSeriesProgressByStudent((current) =>
+          Object.keys(current).length > 0 ? current : normalizeSeriesProgressStore(savedProgress),
+        )
+      }
+
+      if (savedThumbs) {
+        setThumbnailCache((current) =>
+          Object.keys(current).length > 0 ? current : normalizeThumbnailCacheStore(savedThumbs),
+        )
+      }
+
+      if (savedHistory) {
+        setSeriesHistoryByStudent((current) =>
+          Object.keys(current).length > 0 ? current : normalizeSeriesHistoryStore(savedHistory),
+        )
+      }
+    }
+
+    void hydrateFromIndexedDb()
+    return () => {
+      cancelled = true
+    }
+  }, [progressHistoryStorageKey, progressStorageKey, thumbnailStorageKey])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
     window.localStorage.setItem(progressStorageKey, JSON.stringify(seriesProgressByStudent))
+    void writeOfflineJson(progressStorageKey, seriesProgressByStudent)
   }, [seriesProgressByStudent])
 
   useEffect(() => {
     if (typeof window === 'undefined') return
     window.localStorage.setItem(thumbnailStorageKey, JSON.stringify(thumbnailCache))
+    void writeOfflineJson(thumbnailStorageKey, thumbnailCache)
   }, [thumbnailCache])
 
   useEffect(() => {
     if (typeof window === 'undefined') return
     window.localStorage.setItem(progressHistoryStorageKey, JSON.stringify(seriesHistoryByStudent))
+    void writeOfflineJson(progressHistoryStorageKey, seriesHistoryByStudent)
   }, [seriesHistoryByStudent, progressHistoryStorageKey])
 
   const toggleSeriesStep = (exerciseKey: string, stepId: string, stepMeta?: SeriesStepMeta) => {

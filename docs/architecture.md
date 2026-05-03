@@ -12,6 +12,8 @@ flowchart TD
   CTX --> SV["Service Layer (trainer/payment/billing/coach)"]
   Q --> SV
   SV --> LS["localStorage (fallback)"]
+  UI --> IDB["IndexedDB (offline resiliente)"]
+  UI --> SW["Service Worker (cache app shell)"]
   SV --> SB["Supabase (Auth + Postgres + RPC)"]
   SB --> RLS["RLS + RBAC (trainer/student/admin)"]
 ```

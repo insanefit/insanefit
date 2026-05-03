@@ -1,0 +1,22 @@
+{
+  "name": "Insane Fit",
+  "short_name": "InsaneFit",
+  "description": "Plataforma de treino para personal trainer e alunos.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#07090f",
+  "theme_color": "#c40f2f",
+  "icons": [
+    {
+      "src": "/if-favicon.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/if-brand-icon.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

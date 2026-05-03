@@ -80,9 +80,12 @@ export type AppContextType = {
   setRecoveryForm: Dispatch<SetStateAction<{ password: string; confirmPassword: string }>>
   recoveryLoading: boolean
   recoveryMessage: string
-  handleAuthSubmit: (event: FormEvent<HTMLFormElement>) => Promise<void>
-  handleResendConfirmation: () => Promise<void>
-  handlePasswordReset: () => Promise<void>
+  handleAuthSubmit: (
+    event?: FormEvent<HTMLFormElement>,
+    payload?: { email?: string; password?: string; studentCode?: string },
+  ) => Promise<void>
+  handleResendConfirmation: (email?: string) => Promise<void>
+  handlePasswordReset: (email?: string) => Promise<void>
   handleCompletePasswordRecovery: (event: FormEvent<HTMLFormElement>) => Promise<void>
   handleCancelPasswordRecovery: () => void
   handleSignOut: () => Promise<void>

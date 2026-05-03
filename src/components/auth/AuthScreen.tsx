@@ -1,8 +1,16 @@
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
 import { useAuthContext, useTrainerContext } from '../../context/appContextStore'
 import { hasSupabaseCredentials } from '../../lib/supabase'
 
 type AuthAudience = 'student' | 'trainer'
+type AuthFormValues = {
+  email: string
+  password: string
+  studentCode: string
+}
 
 export function AuthScreen() {
   const {
@@ -15,6 +23,67 @@ export function AuthScreen() {
 
   const isStudentAudience = audience === 'student'
   const isStudentSignup = isStudentAudience && authMode === 'signup'
+  const authSchema = useMemo(
+    () =>
+      z
+        .object({
+          email: z.string().trim().email('Informe um email válido.'),
+          password: z.string().trim().min(6, 'Senha deve ter no mínimo 6 caracteres.'),
+          studentCode: z.string().trim(),
+        })
+        .superRefine((values, context) => {
+          if (!isStudentSignup) return
+          const code = values.studentCode.trim().toUpperCase()
+          if (code.length < 6) {
+            context.addIssue({
+              code: z.ZodIssueCode.custom,
+              path: ['studentCode'],
+              message: 'Informe um código de acesso válido.',
+            })
+          }
+        }),
+    [isStudentSignup],
+  )
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    reset,
+    getValues,
+  } = useForm<AuthFormValues>({
+    resolver: zodResolver(authSchema),
+    mode: 'onBlur',
+    defaultValues: {
+      email: authForm.email,
+      password: authForm.password,
+      studentCode: authStudentCode,
+    },
+  })
+  useEffect(() => {
+    reset({
+      email: authForm.email,
+      password: authForm.password,
+      studentCode: authStudentCode,
+    })
+  }, [authForm.email, authForm.password, authStudentCode, reset])
+
+  const onAuthSubmit = handleSubmit(async (values) => {
+    const normalizedEmail = values.email.trim().toLowerCase()
+    const normalizedPassword = values.password.trim()
+    const normalizedStudentCode = values.studentCode.trim().toUpperCase()
+
+    setAuthForm({ email: normalizedEmail, password: normalizedPassword })
+    if (isStudentSignup) {
+      setAuthStudentCode(normalizedStudentCode)
+    }
+
+    await handleAuthSubmit(undefined, {
+      email: normalizedEmail,
+      password: normalizedPassword,
+      studentCode: normalizedStudentCode,
+    })
+  })
+
   const submitLabel = authLoading
     ? 'PROCESSANDO...'
     : authMode === 'login'
@@ -110,19 +179,19 @@ export function AuthScreen() {
                     </button>
                   </div>
 
-                  <form className="form-stack" onSubmit={handleAuthSubmit}>
+                  <form className="form-stack" onSubmit={onAuthSubmit}>
                     {isStudentSignup && (
                       <>
                         <label className="field-label" htmlFor="auth-student-code">Codigo de acesso do personal</label>
                         <input
                           id="auth-student-code"
                           className="field-input"
-                          value={authStudentCode}
-                          onChange={(event) => setAuthStudentCode(event.target.value.toUpperCase())}
+                          {...register('studentCode')}
                           placeholder="Ex: BLN9KQ2R"
                           maxLength={12}
                           required
                         />
+                        {errors.studentCode && <p className="status-line">{errors.studentCode.message}</p>}
                         <p className="status-line">
                           Este codigo conecta sua conta ao personal automaticamente.
                         </p>
@@ -134,26 +203,22 @@ export function AuthScreen() {
                       id="auth-email"
                       className="field-input"
                       type="email"
-                      value={authForm.email}
-                      onChange={(event) =>
-                        setAuthForm((current) => ({ ...current, email: event.target.value }))
-                      }
+                      {...register('email')}
                       placeholder="voce@email.com"
                       required
                     />
+                    {errors.email && <p className="status-line">{errors.email.message}</p>}
 
                     <label className="field-label" htmlFor="auth-password">Senha</label>
                     <input
                       id="auth-password"
                       className="field-input"
                       type="password"
-                      value={authForm.password}
-                      onChange={(event) =>
-                        setAuthForm((current) => ({ ...current, password: event.target.value }))
-                      }
+                      {...register('password')}
                       placeholder="No minimo 6 caracteres"
                       required
                     />
+                    {errors.password && <p className="status-line">{errors.password.message}</p>}
 
                     <button className="btn-primary" type="submit" disabled={authLoading}>
                       {submitLabel}
@@ -161,10 +226,20 @@ export function AuthScreen() {
 
                     {authMode === 'login' && (
                       <div className="auth-help-actions">
-                        <button type="button" className="btn-ghost" onClick={handleResendConfirmation} disabled={authLoading}>
+                        <button
+                          type="button"
+                          className="btn-ghost"
+                          onClick={() => handleResendConfirmation(getValues('email'))}
+                          disabled={authLoading}
+                        >
                           Reenviar confirmacao
                         </button>
-                        <button type="button" className="btn-ghost" onClick={handlePasswordReset} disabled={authLoading}>
+                        <button
+                          type="button"
+                          className="btn-ghost"
+                          onClick={() => handlePasswordReset(getValues('email'))}
+                          disabled={authLoading}
+                        >
                           Esqueci minha senha
                         </button>
                       </div>

@@ -15,10 +15,12 @@
     "supabase:types": "node ./scripts/generate-supabase-types.mjs"
   },
   "dependencies": {
+    "@hookform/resolvers": "^5.2.2",
     "@supabase/supabase-js": "^2.104.0",
     "@tanstack/react-query": "^5.100.5",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
+    "react-hook-form": "^7.75.0",
     "zod": "^3.25.76"
   },
   "devDependencies": {

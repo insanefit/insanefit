@@ -77,6 +77,14 @@ Se `SUPABASE_PROJECT_ID` nao for informado, o script usa o projeto de `VITE_SUPA
 
 Sem configurar variaveis de ambiente, o app roda em modo local com dados salvos no navegador.
 
+## Offline / PWA
+
+- Service worker ativo em producao (`public/sw.js`)
+- Manifest PWA em `public/manifest.webmanifest`
+- Persistencia de progresso do aluno em:
+  - `localStorage` (fallback imediato)
+  - `IndexedDB` (resiliencia offline ampliada)
+
 ## Conectar no Supabase (opcional)
 
 1. Crie um projeto no Supabase.

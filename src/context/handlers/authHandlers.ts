@@ -15,6 +15,11 @@ type AppMode = 'trainer' | 'student'
 
 type AuthForm = { email: string; password: string }
 type RecoveryForm = { password: string; confirmPassword: string }
+type AuthSubmitPayload = {
+  email?: string
+  password?: string
+  studentCode?: string
+}
 
 type AuthHandlerDeps = {
   hasSupabaseCredentials: boolean
@@ -73,11 +78,14 @@ export const createAuthHandlers = (deps: AuthHandlerDeps) => {
     clearRecoveryUrlArtifacts,
   } = deps
 
-  const handleAuthSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    const email = authForm.email.trim().toLowerCase()
-    const password = authForm.password.trim()
-    const studentCode = authStudentCode.trim().toUpperCase()
+  const handleAuthSubmit = async (
+    event?: FormEvent<HTMLFormElement>,
+    payload?: AuthSubmitPayload,
+  ) => {
+    event?.preventDefault()
+    const email = (payload?.email ?? authForm.email).trim().toLowerCase()
+    const password = (payload?.password ?? authForm.password).trim()
+    const studentCode = (payload?.studentCode ?? authStudentCode).trim().toUpperCase()
 
     if (!email || !password) {
       setAuthMessage('Preencha email e senha.')
@@ -104,8 +112,8 @@ export const createAuthHandlers = (deps: AuthHandlerDeps) => {
     }
   }
 
-  const handleResendConfirmation = async () => {
-    const email = authForm.email.trim().toLowerCase()
+  const handleResendConfirmation = async (incomingEmail?: string) => {
+    const email = (incomingEmail ?? authForm.email).trim().toLowerCase()
     if (!email) {
       setAuthMessage('Informe o email para reenviar a confirmacao.')
       return
@@ -116,8 +124,8 @@ export const createAuthHandlers = (deps: AuthHandlerDeps) => {
     setAuthMessage(result.message)
   }
 
-  const handlePasswordReset = async () => {
-    const email = authForm.email.trim().toLowerCase()
+  const handlePasswordReset = async (incomingEmail?: string) => {
+    const email = (incomingEmail ?? authForm.email).trim().toLowerCase()
     if (!email) {
       setAuthMessage('Informe o email para receber o link de recuperacao.')
       return
