@@ -1755,6 +1755,19 @@ select:focus-visible {
   margin: 0;
 }
 
+.workout-day-strip-basic {
+  grid-template-columns: auto minmax(120px, 1fr) auto minmax(120px, 1fr);
+}
+
+.workout-day-strip-filter {
+  grid-template-columns: auto minmax(120px, 1fr) auto minmax(140px, 1fr);
+}
+
+.workout-planning-toggle {
+  display: flex;
+  justify-content: flex-end;
+}
+
 .workout-duplicate-strip {
   border: 1px solid #3f4b60;
   border-radius: var(--radius-sm);
@@ -3483,6 +3496,14 @@ select:focus-visible {
 
   .workout-day-strip {
     grid-template-columns: 1fr;
+  }
+
+  .workout-planning-toggle {
+    justify-content: stretch;
+  }
+
+  .workout-planning-toggle .btn-ghost {
+    width: 100%;
   }
 
   .workout-duplicate-strip {

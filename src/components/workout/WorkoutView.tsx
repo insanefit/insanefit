@@ -91,6 +91,7 @@ export function WorkoutView() {
   const [libraryTab, setLibraryTab] = useState<'app' | 'withGif' | 'inDraft'>('app')
   const [libraryPage, setLibraryPage] = useState(1)
   const [showAdvancedLibraryTools, setShowAdvancedLibraryTools] = useState(false)
+  const [showPlanningTools, setShowPlanningTools] = useState(false)
   const [activeDraftDayChoice, setActiveDraftDayChoice] = useState('')
   const [draftDayFilterChoice, setDraftDayFilterChoice] = useState<'Todos' | string>('Todos')
   const [activeDraftRoutineChoice, setActiveDraftRoutineChoice] = useState('A')
@@ -325,7 +326,7 @@ export function WorkoutView() {
             </button>
           </div>
 
-          <div className="workout-day-strip">
+          <div className="workout-day-strip workout-day-strip-basic">
             <label className="field-label" htmlFor="workout-routine-add">Treino</label>
             <select
               id="workout-routine-add"
@@ -349,61 +350,77 @@ export function WorkoutView() {
                 <option key={`day-add-${day}`} value={day}>{day}</option>
               ))}
             </select>
-
-            <label className="field-label" htmlFor="workout-routine-filter">Filtrar treino</label>
-            <select
-              id="workout-routine-filter"
-              className="field-input"
-              value={draftRoutineFilter}
-              onChange={(event) => setDraftRoutineFilterChoice(event.target.value)}
-            >
-              <option value="Todos">Todos os treinos</option>
-              {studentRoutineOptions.map((routine) => (
-                <option key={`routine-filter-${routine}`} value={routine}>Treino {routine}</option>
-              ))}
-            </select>
-
-            <label className="field-label" htmlFor="workout-day-filter">Exibir no protocolo</label>
-            <select
-              id="workout-day-filter"
-              className="field-input"
-              value={draftDayFilter}
-              onChange={(event) => setDraftDayFilterChoice(event.target.value)}
-            >
-              <option value="Todos">Todos os dias</option>
-              {studentAvailableDays.map((day) => (
-                <option key={`day-filter-${day}`} value={day}>{day}</option>
-              ))}
-            </select>
           </div>
 
-          <div className="workout-duplicate-strip">
-            <label className="field-label" htmlFor="duplicate-source-routine">Duplicar treino</label>
-            <select
-              id="duplicate-source-routine"
-              className="field-input"
-              value={duplicateSourceRoutine}
-              onChange={(event) => setDuplicateSourceRoutine(event.target.value)}
+          <div className="workout-planning-toggle">
+            <button
+              type="button"
+              className="btn-ghost"
+              onClick={() => setShowPlanningTools((current) => !current)}
             >
-              {studentRoutineOptions.map((routine) => (
-                <option key={`duplicate-source-${routine}`} value={routine}>Treino {routine}</option>
-              ))}
-            </select>
-            <span className="duplicate-arrow">→</span>
-            <select
-              aria-label="Treino destino"
-              className="field-input"
-              value={duplicateTargetRoutine}
-              onChange={(event) => setDuplicateTargetRoutine(event.target.value)}
-            >
-              {studentRoutineOptions.map((routine) => (
-                <option key={`duplicate-target-${routine}`} value={routine}>Treino {routine}</option>
-              ))}
-            </select>
-            <button type="button" className="btn-secondary" onClick={handleDuplicateRoutine}>
-              Duplicar
+              {showPlanningTools ? 'Ocultar opcoes avancadas' : 'Mostrar opcoes avancadas'}
             </button>
           </div>
+
+          {showPlanningTools && (
+            <>
+              <div className="workout-day-strip workout-day-strip-filter">
+                <label className="field-label" htmlFor="workout-routine-filter">Filtrar treino</label>
+                <select
+                  id="workout-routine-filter"
+                  className="field-input"
+                  value={draftRoutineFilter}
+                  onChange={(event) => setDraftRoutineFilterChoice(event.target.value)}
+                >
+                  <option value="Todos">Todos os treinos</option>
+                  {studentRoutineOptions.map((routine) => (
+                    <option key={`routine-filter-${routine}`} value={routine}>Treino {routine}</option>
+                  ))}
+                </select>
+
+                <label className="field-label" htmlFor="workout-day-filter">Exibir no protocolo</label>
+                <select
+                  id="workout-day-filter"
+                  className="field-input"
+                  value={draftDayFilter}
+                  onChange={(event) => setDraftDayFilterChoice(event.target.value)}
+                >
+                  <option value="Todos">Todos os dias</option>
+                  {studentAvailableDays.map((day) => (
+                    <option key={`day-filter-${day}`} value={day}>{day}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="workout-duplicate-strip">
+                <label className="field-label" htmlFor="duplicate-source-routine">Duplicar treino</label>
+                <select
+                  id="duplicate-source-routine"
+                  className="field-input"
+                  value={duplicateSourceRoutine}
+                  onChange={(event) => setDuplicateSourceRoutine(event.target.value)}
+                >
+                  {studentRoutineOptions.map((routine) => (
+                    <option key={`duplicate-source-${routine}`} value={routine}>Treino {routine}</option>
+                  ))}
+                </select>
+                <span className="duplicate-arrow">→</span>
+                <select
+                  aria-label="Treino destino"
+                  className="field-input"
+                  value={duplicateTargetRoutine}
+                  onChange={(event) => setDuplicateTargetRoutine(event.target.value)}
+                >
+                  {studentRoutineOptions.map((routine) => (
+                    <option key={`duplicate-target-${routine}`} value={routine}>Treino {routine}</option>
+                  ))}
+                </select>
+                <button type="button" className="btn-secondary" onClick={handleDuplicateRoutine}>
+                  Duplicar
+                </button>
+              </div>
+            </>
+          )}
 
           <div className="workout-flow-tabs">
             <button
