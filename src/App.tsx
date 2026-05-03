@@ -34,7 +34,7 @@ function ViewFallback() {
 }
 
 function AppContent() {
-  const { authReady, currentUser, passwordRecoveryMode } = useAuthContext()
+  const { authReady, currentUser, passwordRecoveryMode, localAccessGranted } = useAuthContext()
   const { loading, appMode, studentPortal, activeMenu } = useTrainerContext()
 
   // Loading
@@ -58,6 +58,11 @@ function AppContent() {
 
   // Auth required
   if (hasSupabaseCredentials && !currentUser) {
+    return <AuthScreen />
+  }
+
+  // Local access required
+  if (!hasSupabaseCredentials && !localAccessGranted) {
     return <AuthScreen />
   }
 

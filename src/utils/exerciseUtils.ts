@@ -262,21 +262,28 @@ const normalizeAttachment = (
 const youtubeFallbackCache = new Map<string, ExerciseVideoAttachment>()
 
 const isYoutubeUrl = (value: string): boolean => /(youtube\.com|youtu\.be)/i.test(value)
+const buildYoutubeSearchEmbedUrl = (exerciseName: string): string => {
+  const query = `${exerciseName} exercicio execucao correta`
+  return `https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(query)}`
+}
 
 const buildYoutubeFallbackAttachment = (exerciseName: string): ExerciseVideoAttachment | undefined => {
   const key = normalizeExerciseKey(exerciseName)
+  if (!key) return undefined
   const cached = youtubeFallbackCache.get(key)
   if (cached) return cached
 
   const options = getExerciseDemoOptions(exerciseName)
   const preferred = options.find((option) => option.source === 'search') ?? options[0]
-  if (!preferred?.embedUrl) return undefined
+  const embedUrl = preferred?.embedUrl?.trim() || buildYoutubeSearchEmbedUrl(exerciseName)
 
   const attachment: ExerciseVideoAttachment = {
-    rawUrl: preferred.embedUrl,
-    embedUrl: preferred.embedUrl,
+    rawUrl: embedUrl,
+    embedUrl,
     licenseLabel: 'YouTube (busca automatica)',
-    notes: 'Fallback automatico via busca no YouTube.',
+    notes: preferred?.embedUrl
+      ? 'Fallback automatico via busca no YouTube.'
+      : 'Fallback automatico por URL de busca do YouTube.',
     updatedAt: 'fallback-youtube',
   }
 
@@ -306,7 +313,7 @@ export const getExerciseVideoAttachment = (
   const exactAttachment = normalizeAttachment(customMap[key] ?? bundledMap[key])
   if (noAutoVideoExerciseKeys.has(key)) {
     // Para estes nomes, evita fallback aproximado/genérico que pode mostrar execução errada.
-    return exactAttachment
+    return exactAttachment ?? buildYoutubeFallbackAttachment(exerciseName)
   }
   const approxAttachment = normalizeAttachment(
     findAttachmentByApproxKey(key, customMap) ??

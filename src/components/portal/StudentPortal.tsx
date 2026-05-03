@@ -903,7 +903,7 @@ export function StudentPortal() {
           </>
         )}
 
-        {studentTab === 'treino' && (
+      {studentTab === 'inicio' && (
           <section className="panel student-routines-panel">
             <div className="panel-head">
               <h3>Rotinas de treino</h3>
@@ -990,7 +990,7 @@ export function StudentPortal() {
                     }
                     disabled={collapseKeys.length === 0}
                   >
-                    Recolher todos
+            Recolher todos
                   </button>
                   <button
                     type="button"

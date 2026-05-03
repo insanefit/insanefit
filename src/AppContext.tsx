@@ -104,6 +104,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setAuthReady,
     currentUser,
     setCurrentUser,
+    localAccessGranted,
+    setLocalAccessGranted,
     authMode,
     setAuthMode,
     authLoading,
@@ -518,6 +520,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     handleSignOut,
     handleClaimStudentAccess,
   } = createAuthHandlers({
+    hasSupabaseCredentials,
+    setLocalAccessGranted,
     authForm,
     authStudentCode,
     authMode,
@@ -666,6 +670,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const authContextInput = useMemo(() => ({
     authReady,
     currentUser,
+    localAccessGranted,
+    setLocalAccessGranted,
     authMode,
     setAuthMode,
     authForm,
@@ -688,6 +694,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
   } as const), [
     authReady,
     currentUser,
+    localAccessGranted,
+    setLocalAccessGranted,
     authMode,
     setAuthMode,
     authForm,

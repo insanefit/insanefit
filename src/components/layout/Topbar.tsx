@@ -34,11 +34,9 @@ export function Topbar() {
             Portal aluno
           </button>
         )}
-        {hasSupabaseCredentials && (
-          <button type="button" className="btn-ghost" onClick={handleSignOut}>
-            Sair
-          </button>
-        )}
+        <button type="button" className="btn-ghost" onClick={handleSignOut}>
+          Sair
+        </button>
       </div>
     </header>
   )

@@ -17,6 +17,7 @@ type AuthForm = { email: string; password: string }
 type RecoveryForm = { password: string; confirmPassword: string }
 
 type AuthHandlerDeps = {
+  hasSupabaseCredentials: boolean
   authForm: AuthForm
   authStudentCode: string
   authMode: AuthMode
@@ -27,6 +28,7 @@ type AuthHandlerDeps = {
   setAuthLoading: Dispatch<SetStateAction<boolean>>
   setLoading: Dispatch<SetStateAction<boolean>>
   setAuthForm: Dispatch<SetStateAction<AuthForm>>
+  setLocalAccessGranted: Dispatch<SetStateAction<boolean>>
   setPendingClaimCode: Dispatch<SetStateAction<string>>
   setRecoveryLoading: Dispatch<SetStateAction<boolean>>
   setRecoveryMessage: Dispatch<SetStateAction<string>>
@@ -45,6 +47,7 @@ type AuthHandlerDeps = {
 
 export const createAuthHandlers = (deps: AuthHandlerDeps) => {
   const {
+    hasSupabaseCredentials,
     authForm,
     authStudentCode,
     authMode,
@@ -55,6 +58,7 @@ export const createAuthHandlers = (deps: AuthHandlerDeps) => {
     setAuthLoading,
     setLoading,
     setAuthForm,
+    setLocalAccessGranted,
     setPendingClaimCode,
     setRecoveryLoading,
     setRecoveryMessage,
@@ -92,6 +96,7 @@ export const createAuthHandlers = (deps: AuthHandlerDeps) => {
     setLoading(false)
 
     if (result.ok) {
+      setLocalAccessGranted(true)
       setAuthForm((current) => ({ ...current, email, password: '' }))
       if (studentCode) {
         setPendingClaimCode(studentCode)
@@ -164,8 +169,17 @@ export const createAuthHandlers = (deps: AuthHandlerDeps) => {
 
   const handleSignOut = async () => {
     setLoading(true)
-    await signOut()
-    setSyncMessage('Sessao encerrada.')
+    try {
+      await signOut()
+      if (!hasSupabaseCredentials) {
+        setLocalAccessGranted(false)
+        setStudentPortal(null)
+        setAppMode('trainer')
+      }
+      setSyncMessage('Sessao encerrada.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handleClaimStudentAccess = async (event: FormEvent<HTMLFormElement>) => {

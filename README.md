@@ -107,3 +107,5 @@ Para ativar pagamento real no Stripe:
 1. Criar a edge function `create-checkout-session` no Supabase.
 2. Na function, criar `Checkout Session` de assinatura no Stripe Billing.
 3. Atualizar `trainer_profiles` via webhook Stripe (`customer.subscription.updated`).
+[![CI](https://github.com/insanefit/insanefit/actions/workflows/ci.yml/badge.svg?branch=dev)](https://github.com/insanefit/insanefit/actions/workflows/ci.yml)
+[![CD Vercel](https://github.com/insanefit/insanefit/actions/workflows/cd-vercel.yml/badge.svg?branch=dev)](https://github.com/insanefit/insanefit/actions/workflows/cd-vercel.yml)
