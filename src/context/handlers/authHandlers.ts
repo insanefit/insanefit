@@ -28,6 +28,7 @@ type AuthHandlerDeps = {
   setAuthLoading: Dispatch<SetStateAction<boolean>>
   setLoading: Dispatch<SetStateAction<boolean>>
   setAuthForm: Dispatch<SetStateAction<AuthForm>>
+  setLocalAccessGranted: Dispatch<SetStateAction<boolean>>
   setPendingClaimCode: Dispatch<SetStateAction<string>>
   setRecoveryLoading: Dispatch<SetStateAction<boolean>>
   setRecoveryMessage: Dispatch<SetStateAction<string>>
@@ -57,6 +58,7 @@ export const createAuthHandlers = (deps: AuthHandlerDeps) => {
     setAuthLoading,
     setLoading,
     setAuthForm,
+    setLocalAccessGranted,
     setPendingClaimCode,
     setRecoveryLoading,
     setRecoveryMessage,
@@ -94,6 +96,7 @@ export const createAuthHandlers = (deps: AuthHandlerDeps) => {
     setLoading(false)
 
     if (result.ok) {
+      setLocalAccessGranted(true)
       setAuthForm((current) => ({ ...current, email, password: '' }))
       if (studentCode) {
         setPendingClaimCode(studentCode)
@@ -169,6 +172,7 @@ export const createAuthHandlers = (deps: AuthHandlerDeps) => {
     try {
       await signOut()
       if (!hasSupabaseCredentials) {
+        setLocalAccessGranted(false)
         setStudentPortal(null)
         setAppMode('trainer')
       }
