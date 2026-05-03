@@ -518,6 +518,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     handleSignOut,
     handleClaimStudentAccess,
   } = createAuthHandlers({
+    hasSupabaseCredentials,
     authForm,
     authStudentCode,
     authMode,

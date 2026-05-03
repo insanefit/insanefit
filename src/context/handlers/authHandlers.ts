@@ -17,6 +17,7 @@ type AuthForm = { email: string; password: string }
 type RecoveryForm = { password: string; confirmPassword: string }
 
 type AuthHandlerDeps = {
+  hasSupabaseCredentials: boolean
   authForm: AuthForm
   authStudentCode: string
   authMode: AuthMode
@@ -45,6 +46,7 @@ type AuthHandlerDeps = {
 
 export const createAuthHandlers = (deps: AuthHandlerDeps) => {
   const {
+    hasSupabaseCredentials,
     authForm,
     authStudentCode,
     authMode,
@@ -164,8 +166,16 @@ export const createAuthHandlers = (deps: AuthHandlerDeps) => {
 
   const handleSignOut = async () => {
     setLoading(true)
-    await signOut()
-    setSyncMessage('Sessao encerrada.')
+    try {
+      await signOut()
+      if (!hasSupabaseCredentials) {
+        setStudentPortal(null)
+        setAppMode('trainer')
+      }
+      setSyncMessage('Sessao encerrada.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handleClaimStudentAccess = async (event: FormEvent<HTMLFormElement>) => {
