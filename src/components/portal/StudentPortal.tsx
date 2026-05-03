@@ -190,6 +190,12 @@ const parseNumericMetric = (value: string): number | null => {
   return parsed
 }
 
+const formatEffortHint = (rpe: string): string => {
+  const value = rpe.trim()
+  if (!value) return 'esforço confortável'
+  return `esforço ${value}/10`
+}
+
 const buildExerciseSeriesSteps = (
   exerciseName: string,
   protocol: AppContextType['parseWorkoutProtocolFromExercise'] extends (
@@ -201,8 +207,10 @@ const buildExerciseSeriesSteps = (
   const warmupBlocks = splitWarmupBlocks(protocol.warmup || '')
   const feederSets = toPositiveInt(protocol.feederSets, 1)
   const workSets = toPositiveInt(protocol.workSets, 1)
+  const clusterBlocks = toPositiveInt(protocol.clusterBlocks, 3)
   const myoMiniSets = toPositiveInt(protocol.myoMiniSets, 3)
   const baseRest = protocol.rest.trim() || '90s'
+  const clusterRest = protocol.clusterRest.trim() || '20s'
   const myoRest = protocol.myoRest.trim() || '5s'
   const keyBase = exerciseName.toLowerCase().replace(/\s+/g, '-')
   const steps: ExerciseSeriesStep[] = []
@@ -210,7 +218,7 @@ const buildExerciseSeriesSteps = (
   warmupBlocks.forEach((block, index) => {
     steps.push({
       id: `${keyBase}-warmup-${index + 1}`,
-      label: `Warm-up ${index + 1}`,
+      label: `Aquecimento ${index + 1}`,
       detail: block,
       rest: baseRest,
     })
@@ -219,17 +227,29 @@ const buildExerciseSeriesSteps = (
   for (let index = 1; index <= feederSets; index += 1) {
     steps.push({
       id: `${keyBase}-feeder-${index}`,
-      label: `Feeder ${index}`,
-      detail: `${protocol.feederReps} reps @ RPE ${protocol.feederRpe}`,
+      label: `Preparação ${index}`,
+      detail: `${protocol.feederReps} repetições (${formatEffortHint(protocol.feederRpe)})`,
       rest: baseRest,
     })
   }
 
   for (let index = 1; index <= workSets; index += 1) {
+    if (protocol.useClusterSet) {
+      for (let block = 1; block <= clusterBlocks; block += 1) {
+        steps.push({
+          id: `${keyBase}-cluster-${index}-${block}`,
+          label: `Cluster ${index}.${block}`,
+          detail: `${protocol.clusterReps} repetições (${formatEffortHint(protocol.workRpe)})`,
+          rest: block === clusterBlocks ? baseRest : clusterRest,
+        })
+      }
+      continue
+    }
+
     steps.push({
       id: `${keyBase}-work-${index}`,
-      label: `Work ${index}`,
-      detail: `${protocol.workReps} reps @ RPE ${protocol.workRpe}`,
+      label: `Série principal ${index}`,
+      detail: `${protocol.workReps} repetições (${formatEffortHint(protocol.workRpe)})`,
       rest: baseRest,
     })
   }
@@ -238,8 +258,8 @@ const buildExerciseSeriesSteps = (
     for (let index = 1; index <= myoMiniSets; index += 1) {
       steps.push({
         id: `${keyBase}-myo-${index}`,
-        label: `Myo mini-set ${index}`,
-        detail: `${protocol.myoMiniReps} reps`,
+        label: `Mini série ${index}`,
+        detail: `${protocol.myoMiniReps} repetições`,
         rest: myoRest,
       })
     }
@@ -249,8 +269,8 @@ const buildExerciseSeriesSteps = (
 }
 
 const extractTargetReps = (step: ExerciseSeriesStep): string => {
-  if (step.label.toLowerCase().includes('warm-up')) return step.detail
-  const match = step.detail.match(/(\d+)\s*reps?/i)
+  if (step.label.toLowerCase().includes('aquecimento')) return step.detail
+  const match = step.detail.match(/(\d+)\s*(?:reps?|repeticoes|repetições)/i)
   return match?.[1] ?? step.detail
 }
 
@@ -1027,8 +1047,8 @@ export function StudentPortal() {
                     exercise.routine ?? extractWorkoutRoutineFromNote(exercise.note),
                   )
                   const restPreset = getExerciseRestPreset(exercise)
-                  const workSummary = `${protocol.workSets} x ${protocol.workReps} @ RPE ${protocol.workRpe}`
-                  const feederSummary = `${protocol.feederSets} x ${protocol.feederReps} @ RPE ${protocol.feederRpe}`
+                  const workSummary = `${protocol.workSets} séries de ${protocol.workReps} repetições (${formatEffortHint(protocol.workRpe)})`
+                  const feederSummary = `${protocol.feederSets} séries de preparação com ${protocol.feederReps} repetições (${formatEffortHint(protocol.feederRpe)})`
                   const exerciseKey = `${exercise.name}::${exerciseIndex}::${studentPortal.student.id}`
                   const collapseKey = `${studentPortal.student.id}::${exercise.name}::${exerciseIndex}`
                   const isCollapsed = collapsedExercises[collapseKey] ?? false
@@ -1103,11 +1123,16 @@ export function StudentPortal() {
 
                       {!isCollapsed && (
                         <>
-                          <span>Work {workSummary}</span>
-                          <p className="protocol-line">Warm-up: {protocol.warmup} | Feeder: {feederSummary}</p>
+                          <span>Séries principais: {workSummary}</span>
+                          <p className="protocol-line">Aquecimento: {protocol.warmup} | Preparação: {feederSummary}</p>
+                          {protocol.useClusterSet && (
+                            <p className="protocol-line myo">
+                              Cluster set: em cada série principal, faça {protocol.clusterBlocks} blocos de {protocol.clusterReps} repetições com pausa curta de {protocol.clusterRest}.
+                            </p>
+                          )}
                           {protocol.useMyoReps && (
                             <p className="protocol-line myo">
-                              Myo-reps: mini {protocol.myoMiniSets} x {protocol.myoMiniReps} (rest {protocol.myoRest})
+                              Myo-reps: após a série principal, faça {protocol.myoMiniSets} mini séries de {protocol.myoMiniReps} repetições com pausa de {protocol.myoRest}.
                             </p>
                           )}
                           <div className="exercise-row-actions">
@@ -1128,7 +1153,22 @@ export function StudentPortal() {
                                   applyRestTimer(protocol.myoRest, `Myo-reps ${getExerciseDisplayName(exercise.name)}`, true)
                                 }
                               >
-                                Descanso myo ({protocol.myoRest})
+                                Pausa myo ({protocol.myoRest})
+                              </button>
+                            )}
+                            {protocol.useClusterSet && (
+                              <button
+                                type="button"
+                                className="btn-secondary"
+                                onClick={() =>
+                                  applyRestTimer(
+                                    protocol.clusterRest,
+                                    `Cluster set ${getExerciseDisplayName(exercise.name)}`,
+                                    true,
+                                  )
+                                }
+                              >
+                                Pausa cluster ({protocol.clusterRest})
                               </button>
                             )}
                           </div>

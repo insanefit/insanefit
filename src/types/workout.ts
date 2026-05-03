@@ -14,6 +14,10 @@ export type WorkoutDraftItem = {
   workReps: string
   workRpe: string
   rest: string
+  useClusterSet: boolean
+  clusterBlocks: string
+  clusterReps: string
+  clusterRest: string
   useMyoReps: boolean
   myoMiniSets: string
   myoMiniReps: string

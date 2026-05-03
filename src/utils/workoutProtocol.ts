@@ -54,6 +54,10 @@ export const createDefaultProtocol = (muscleGroup: string) => ({
   workReps: '8-12',
   workRpe: '8-9',
   rest: '90s',
+  useClusterSet: false,
+  clusterBlocks: '3',
+  clusterReps: '2-3',
+  clusterRest: '20s',
   useMyoReps: false,
   myoMiniSets: '3',
   myoMiniReps: '3-5',
@@ -147,6 +151,43 @@ export const parseMyoSegment = (
   return parsed
 }
 
+export const parseClusterSegment = (
+  rawValue: string,
+): Partial<Pick<WorkoutDraftItem, 'useClusterSet' | 'clusterBlocks' | 'clusterReps' | 'clusterRest'>> => {
+  const value = rawValue.trim()
+  const lower = value.toLowerCase()
+  const parsed: Partial<Pick<WorkoutDraftItem, 'useClusterSet' | 'clusterBlocks' | 'clusterReps' | 'clusterRest'>> =
+    {}
+
+  if (/(on|sim|ativo|ativado)/i.test(lower)) {
+    parsed.useClusterSet = true
+  }
+
+  if (/(off|nao|não|desativado)/i.test(lower)) {
+    parsed.useClusterSet = false
+  }
+
+  const blocks = value.match(/(?:blocks?|blocos?)\s*[=:]?\s*([\d-]+)/i)
+  if (blocks) {
+    parsed.clusterBlocks = blocks[1].trim()
+    parsed.useClusterSet = true
+  }
+
+  const reps = value.match(/(?:reps?|repeticoes|repetições)\s*[=:]?\s*([\d-]+)/i)
+  if (reps) {
+    parsed.clusterReps = reps[1].trim()
+    parsed.useClusterSet = true
+  }
+
+  const rest = value.match(/(?:rest|descanso)\s*[=:]?\s*([\w: ]+)/i)
+  if (rest) {
+    parsed.clusterRest = rest[1].trim()
+    parsed.useClusterSet = true
+  }
+
+  return parsed
+}
+
 export const parseWorkoutProtocolFromExercise = (
   exercise: Exercise,
   muscleGroup: string,
@@ -223,6 +264,11 @@ export const parseWorkoutProtocolFromExercise = (
       return
     }
 
+    if (lower.startsWith('cluster:') || lower.startsWith('cluster-set:')) {
+      Object.assign(protocol, parseClusterSegment(segmentValue))
+      return
+    }
+
     if (lower.startsWith('obs:') || lower.startsWith('nota:')) {
       protocol.note = segmentValue || protocol.note
       return
@@ -245,6 +291,10 @@ export const parseWorkoutProtocolFromExercise = (
 
   if (/\bmyo\b/i.test(exercise.note)) {
     protocol.useMyoReps = true
+  }
+
+  if (/\bcluster\b/i.test(exercise.note)) {
+    protocol.useClusterSet = true
   }
 
   if (freeNotes.length > 0) {
@@ -275,6 +325,9 @@ export const buildWorkoutNote = (item: WorkoutDraftItem): string => {
   const workRpe = item.workRpe.trim() || '8-9'
   const rest = item.rest.trim() || '90s'
   const note = item.note.trim()
+  const clusterBlocks = item.clusterBlocks.trim() || '3'
+  const clusterReps = item.clusterReps.trim() || '2-3'
+  const clusterRest = item.clusterRest.trim() || '20s'
   const myoMiniSets = item.myoMiniSets.trim() || '3'
   const myoMiniReps = item.myoMiniReps.trim() || '3-5'
   const myoRest = item.myoRest.trim() || '5s'
@@ -290,6 +343,10 @@ export const buildWorkoutNote = (item: WorkoutDraftItem): string => {
 
   if (item.useMyoReps) {
     parts.push(`Myo: ON; mini=${myoMiniSets}; reps=${myoMiniReps}; rest=${myoRest}`)
+  }
+
+  if (item.useClusterSet) {
+    parts.push(`Cluster: ON; blocks=${clusterBlocks}; reps=${clusterReps}; rest=${clusterRest}`)
   }
 
   if (note) {
@@ -321,6 +378,10 @@ export const workoutToDraft = (studentId: string, workout: Exercise[]): WorkoutD
       workReps: parsedProtocol.workReps,
       workRpe: parsedProtocol.workRpe,
       rest: parsedProtocol.rest,
+      useClusterSet: parsedProtocol.useClusterSet,
+      clusterBlocks: parsedProtocol.clusterBlocks,
+      clusterReps: parsedProtocol.clusterReps,
+      clusterRest: parsedProtocol.clusterRest,
       useMyoReps: parsedProtocol.useMyoReps,
       myoMiniSets: parsedProtocol.myoMiniSets,
       myoMiniReps: parsedProtocol.myoMiniReps,

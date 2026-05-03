@@ -16,6 +16,7 @@ const extractYoutubeVideoId = (value: string): string | null => {
 }
 
 const buildYoutubeThumbUrl = (videoId: string): string => `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`
+type ProtocolMode = 'padrao' | 'cluster' | 'myo' | 'cluster_myo'
 
 export function WorkoutView() {
   const {
@@ -235,6 +236,63 @@ export function WorkoutView() {
       notes: attachment?.notes ?? '',
     })
     handleOpenExerciseDemo(exercise)
+  }
+
+  const getProtocolMode = (exercise: (typeof workoutDraft)[number]): ProtocolMode => {
+    if (exercise.useClusterSet && exercise.useMyoReps) return 'cluster_myo'
+    if (exercise.useClusterSet) return 'cluster'
+    if (exercise.useMyoReps) return 'myo'
+    return 'padrao'
+  }
+
+  const applyProtocolMode = (exerciseId: string, mode: ProtocolMode) => {
+    setWorkoutDraft((current) =>
+      current.map((item) => {
+        if (item.id !== exerciseId) return item
+
+        if (mode === 'padrao') {
+          return {
+            ...item,
+            useClusterSet: false,
+            useMyoReps: false,
+          }
+        }
+
+        if (mode === 'cluster') {
+          return {
+            ...item,
+            useClusterSet: true,
+            clusterBlocks: item.clusterBlocks.trim() || '3',
+            clusterReps: item.clusterReps.trim() || '2-3',
+            clusterRest: item.clusterRest.trim() || '20s',
+            useMyoReps: false,
+          }
+        }
+
+        if (mode === 'myo') {
+          return {
+            ...item,
+            useClusterSet: false,
+            useMyoReps: true,
+            myoMiniSets: item.myoMiniSets.trim() || '3',
+            myoMiniReps: item.myoMiniReps.trim() || '3-5',
+            myoRest: item.myoRest.trim() || '5s',
+          }
+        }
+
+        return {
+          ...item,
+          useClusterSet: true,
+          clusterBlocks: item.clusterBlocks.trim() || '3',
+          clusterReps: item.clusterReps.trim() || '2-3',
+          clusterRest: item.clusterRest.trim() || '20s',
+          useMyoReps: true,
+          myoMiniSets: item.myoMiniSets.trim() || '3',
+          myoMiniReps: item.myoMiniReps.trim() || '3-5',
+          myoRest: item.myoRest.trim() || '5s',
+        }
+      }),
+    )
   }
 
   return (
@@ -957,6 +1015,7 @@ export function WorkoutView() {
                           <span>Feeder: {exercise.feederSets}x{exercise.feederReps} @ RPE {exercise.feederRpe}</span>
                           <span>Work: {exercise.workSets}x{exercise.workReps} @ RPE {exercise.workRpe}</span>
                           <span>Descanso: {exercise.rest}</span>
+                          <span>{exercise.useClusterSet ? `Cluster ativo (${exercise.clusterBlocks} blocos, ${exercise.clusterReps}, ${exercise.clusterRest})` : 'Cluster desativado'}</span>
                           <span>{exercise.useMyoReps ? `Myo ativo (${exercise.myoRest})` : 'Myo desativado'}</span>
                         </div>
 
@@ -975,6 +1034,22 @@ export function WorkoutView() {
                         {editingDraftExerciseId === exercise.id && (
                           <>
                             <div className="draft-grid">
+                              <div>
+                                <label className="field-label" htmlFor={`protocol-mode-${exercise.id}`}>Modelo do protocolo</label>
+                                <select
+                                  id={`protocol-mode-${exercise.id}`}
+                                  className="field-input"
+                                  value={getProtocolMode(exercise)}
+                                  onChange={(event) =>
+                                    applyProtocolMode(exercise.id, event.target.value as ProtocolMode)
+                                  }
+                                >
+                                  <option value="padrao">Padrao</option>
+                                  <option value="cluster">Cluster set</option>
+                                  <option value="myo">Myo-reps</option>
+                                  <option value="cluster_myo">Cluster + Myo</option>
+                                </select>
+                              </div>
                               <div>
                                 <label className="field-label" htmlFor={`routine-${exercise.id}`}>Treino</label>
                                 <select
@@ -1069,6 +1144,37 @@ export function WorkoutView() {
                                 </div>
                               </div>
                             </div>
+
+                            <div className="myo-toggle-row">
+                              <label className="myo-toggle" htmlFor={`cluster-toggle-${exercise.id}`}>
+                                <input
+                                  id={`cluster-toggle-${exercise.id}`}
+                                  type="checkbox"
+                                  checked={exercise.useClusterSet}
+                                  onChange={(event) =>
+                                    handleUpdateDraftExercise(exercise.id, 'useClusterSet', event.target.checked)
+                                  }
+                                />
+                                <span>Ativar Cluster Set</span>
+                              </label>
+                            </div>
+
+                            {exercise.useClusterSet && (
+                              <div className="phase-grid">
+                                <div>
+                                  <label className="field-label" htmlFor={`cluster-blocks-${exercise.id}`}>Blocos</label>
+                                  <input id={`cluster-blocks-${exercise.id}`} className="field-input" value={exercise.clusterBlocks} onChange={(event) => handleUpdateDraftExercise(exercise.id, 'clusterBlocks', event.target.value)} placeholder="Ex: 3" />
+                                </div>
+                                <div>
+                                  <label className="field-label" htmlFor={`cluster-reps-${exercise.id}`}>Reps por bloco</label>
+                                  <input id={`cluster-reps-${exercise.id}`} className="field-input" value={exercise.clusterReps} onChange={(event) => handleUpdateDraftExercise(exercise.id, 'clusterReps', event.target.value)} placeholder="Ex: 2-3" />
+                                </div>
+                                <div>
+                                  <label className="field-label" htmlFor={`cluster-rest-${exercise.id}`}>Descanso intra</label>
+                                  <input id={`cluster-rest-${exercise.id}`} className="field-input" value={exercise.clusterRest} onChange={(event) => handleUpdateDraftExercise(exercise.id, 'clusterRest', event.target.value)} placeholder="Ex: 20s" />
+                                </div>
+                              </div>
+                            )}
 
                             <div className="myo-toggle-row">
                               <label className="myo-toggle" htmlFor={`myo-toggle-${exercise.id}`}>
