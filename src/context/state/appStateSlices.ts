@@ -15,6 +15,7 @@ import { defaultBillingProfile } from '../../services/billingStore'
 export const useAuthStateSlice = () => {
   const [authReady, setAuthReady] = useState(!hasSupabaseCredentials)
   const [currentUser, setCurrentUser] = useState<User | null>(null)
+  const [localAccessGranted, setLocalAccessGranted] = useState(false)
   const [authMode, setAuthMode] = useState<'login' | 'signup'>(() =>
     getInitialSignupCodeFromUrl() ? 'signup' : 'login',
   )
@@ -36,6 +37,8 @@ export const useAuthStateSlice = () => {
     setAuthReady,
     currentUser,
     setCurrentUser,
+    localAccessGranted,
+    setLocalAccessGranted,
     authMode,
     setAuthMode,
     authLoading,

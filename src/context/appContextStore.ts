@@ -65,6 +65,8 @@ export type AppContextType = {
   // Auth
   authReady: boolean
   currentUser: User | null
+  localAccessGranted: boolean
+  setLocalAccessGranted: Dispatch<SetStateAction<boolean>>
   authMode: 'login' | 'signup'
   setAuthMode: (mode: 'login' | 'signup') => void
   authForm: { email: string; password: string }

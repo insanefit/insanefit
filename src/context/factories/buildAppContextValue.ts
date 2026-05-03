@@ -23,6 +23,8 @@ const pickContextKeys = <K extends keyof AppContextType>(
 const authKeys = [
   'authReady',
   'currentUser',
+  'localAccessGranted',
+  'setLocalAccessGranted',
   'authMode',
   'setAuthMode',
   'authForm',
