@@ -32,6 +32,27 @@ npm run build
 npm run preview
 ```
 
+## Testes
+
+Rodar suite local:
+
+```bash
+npm run test
+```
+
+Rodar uma vez (modo CI):
+
+```bash
+npm run test:run
+```
+
+## Documentacao
+
+- Guia de contribuicao: `CONTRIBUTING.md`
+- Arquitetura: `docs/architecture.md`
+- Variaveis de ambiente: `docs/environment-variables.md`
+- RBAC: `docs/rbac-matrix.md`
+
 ## Gerar tipos do Supabase (automatico)
 
 O app usa `src/types/database.generated.ts` para tipar tabelas e RPCs.
@@ -70,13 +91,7 @@ O perfil do coach (nome, titulo, avatar e contatos) tambem sincroniza em `traine
 Tambem adiciona RBAC com `user_roles`, tabela de financeiro `student_payments`,
 funcoes atomicas (`upsert_student_payment`, `get_student_portal_finance`) e reforco de policies com override admin.
 
-Variaveis esperadas:
-
-- `VITE_SUPABASE_URL`
-- `VITE_SUPABASE_ANON_KEY`
-- `VITE_STRIPE_PUBLISHABLE_KEY` (opcional nesta fase)
-- `VITE_EXERCISEDB_API_KEY` (opcional, para importar GIFs/animações via RapidAPI)
-- `VITE_EXERCISEDB_API_HOST` (opcional, padrao `exercisedb.p.rapidapi.com`)
+Variaveis esperadas: veja `docs/environment-variables.md`.
 
 ## Estrutura principal
 
