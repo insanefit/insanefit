@@ -121,6 +121,16 @@ const normalizeLookup = (value: string) =>
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
 
+const createShareCode = (): string => {
+  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+  let code = ''
+  for (let index = 0; index < 8; index += 1) {
+    const randomIndex = Math.floor(Math.random() * alphabet.length)
+    code += alphabet[randomIndex]
+  }
+  return code
+}
+
 const parseSexFromValue = (value: string): string | undefined => {
   const normalized = normalizeLookup(value)
   if (!normalized) {
@@ -646,9 +656,11 @@ export const saveStudentRemotely = async (student: Student, userId: string): Pro
     return student
   }
 
+  const shareCode = student.shareCode?.trim() || createShareCode()
   const normalizedInsertPayload: Record<string, unknown> = {
       id: student.id,
       user_id: userId,
+      share_code: shareCode,
       name: student.name,
       objective: student.objective,
       adherence: student.adherence,

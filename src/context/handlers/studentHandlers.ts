@@ -93,6 +93,16 @@ export const createStudentHandlers = (deps: StudentHandlerDeps) => {
     return digits.startsWith('55') ? digits : `55${digits}`
   }
 
+  const generateShareCode = (): string => {
+    const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+    let code = ''
+    for (let index = 0; index < 8; index += 1) {
+      const randomIndex = Math.floor(Math.random() * alphabet.length)
+      code += alphabet[randomIndex]
+    }
+    return code
+  }
+
   const parseMonthlyFee = (value: string): number => {
     const trimmed = value.trim().replace(/[^\d,.-]/g, '')
     if (!trimmed) return 0
@@ -156,6 +166,7 @@ export const createStudentHandlers = (deps: StudentHandlerDeps) => {
       monthlyFee,
       dueDay,
       pixKey: pixKey || undefined,
+      shareCode: generateShareCode(),
       studentUserId: null,
       updatedAt: new Date().toISOString(),
     }
@@ -227,7 +238,7 @@ export const createStudentHandlers = (deps: StudentHandlerDeps) => {
           student.id === newStudent.id
             ? {
                 ...student,
-                shareCode: savedStudent.shareCode,
+                shareCode: savedStudent.shareCode ?? student.shareCode,
                 studentUserId: savedStudent.studentUserId ?? null,
                 updatedAt: savedStudent.updatedAt ?? student.updatedAt,
               }
@@ -504,8 +515,17 @@ export const createStudentHandlers = (deps: StudentHandlerDeps) => {
       return
     }
     const accessLink = `${window.location.origin}/?codigo=${encodeURIComponent(shareCode)}`
-    const shareText = `Acesso Insane Fit para ${student.name}: ${accessLink}`
+    const shareText = `Oi ${student.name}, aqui esta seu acesso ao Insane Fit: ${accessLink}`
     try {
+      const normalizedWhatsapp = normalizeWhatsapp(student.whatsapp?.trim() ?? '')
+      if (normalizedWhatsapp) {
+        const whatsappUrl = `https://wa.me/${normalizedWhatsapp}?text=${encodeURIComponent(shareText)}`
+        const popup = window.open(whatsappUrl, '_blank', 'noopener,noreferrer')
+        if (popup) {
+          setSyncMessage(`Link de acesso aberto no WhatsApp de ${student.name}.`)
+          return
+        }
+      }
       if (navigator.share) {
         await navigator.share({
           title: 'Acesso Insane Fit',
