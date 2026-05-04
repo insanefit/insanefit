@@ -14,6 +14,7 @@ import {
   saveTrainerPixKeyRemotely,
   upsertTrainerStudentPayment,
 } from '../../services/paymentStore'
+import { sessionFormSchema, studentFormSchema } from '../../schemas/formSchemas'
 import type { BillingProfile } from '../../types/billing'
 import { getPlanDefinition } from '../../data/plans'
 
@@ -126,7 +127,19 @@ export const createStudentHandlers = (deps: StudentHandlerDeps) => {
     const monthlyFee = parseMonthlyFee(studentForm.monthlyFee)
     const dueDay = parseDueDay(studentForm.dueDay)
     const pixKey = studentForm.pixKey.trim()
-    if (!name || !sex || !trainingLevel || !workoutType) return
+    const studentValidation = studentFormSchema.safeParse({
+      name,
+      sex,
+      trainingLevel,
+      workoutType,
+      whatsapp,
+      monthlyFee,
+      dueDay,
+    })
+    if (!studentValidation.success) {
+      setSyncMessage(studentValidation.error.issues[0]?.message ?? 'Dados do aluno invalidos.')
+      return
+    }
 
     const newStudent: Student = {
       id: createId('s'),
@@ -278,8 +291,17 @@ export const createStudentHandlers = (deps: StudentHandlerDeps) => {
     const monthlyFee = parseMonthlyFee(studentEditForm.monthlyFee)
     const dueDay = parseDueDay(studentEditForm.dueDay)
     const pixKey = studentEditForm.pixKey.trim()
-    if (!name || !sex || !trainingLevel || !workoutType) {
-      setSyncMessage('Preencha nome, sexo, nivel e tipo de treino.')
+    const studentValidation = studentFormSchema.safeParse({
+      name,
+      sex,
+      trainingLevel,
+      workoutType,
+      whatsapp,
+      monthlyFee,
+      dueDay,
+    })
+    if (!studentValidation.success) {
+      setSyncMessage(studentValidation.error.issues[0]?.message ?? 'Dados do aluno invalidos.')
       return
     }
 
@@ -386,7 +408,18 @@ export const createStudentHandlers = (deps: StudentHandlerDeps) => {
 
   const handleCreateSession = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    if (!sessionForm.studentId || !sessionForm.focus.trim()) return
+    const parsedDuration = Number(sessionForm.duration) || 60
+    const sessionValidation = sessionFormSchema.safeParse({
+      studentId: sessionForm.studentId,
+      day: sessionForm.day,
+      time: sessionForm.time,
+      focus: sessionForm.focus,
+      duration: parsedDuration,
+    })
+    if (!sessionValidation.success) {
+      setSyncMessage(sessionValidation.error.issues[0]?.message ?? 'Dados da aula invalidos.')
+      return
+    }
 
     const baseSession: Session = {
       id: editingSessionId ?? createId('a'),
@@ -394,7 +427,7 @@ export const createStudentHandlers = (deps: StudentHandlerDeps) => {
       time: sessionForm.time,
       studentId: sessionForm.studentId,
       focus: sessionForm.focus.trim(),
-      duration: Number(sessionForm.duration) || 60,
+      duration: parsedDuration,
       updatedAt: new Date().toISOString(),
     }
 

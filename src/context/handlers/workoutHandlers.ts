@@ -16,6 +16,7 @@ import {
   saveExerciseVideoMapRemotely,
 } from '../../services/trainerStore'
 import { enqueueSyncOperation } from '../../services/offlineSyncQueue'
+import { workoutSaveSchema } from '../../schemas/formSchemas'
 import {
   buildExerciseDbCandidateMap,
   findExerciseByApproxName,
@@ -521,6 +522,15 @@ export const createWorkoutHandlers = (deps: WorkoutHandlerDeps) => {
     const normalizedDraft = workoutDraft.filter((item) => item.name.trim().length > 0)
     const workout: Exercise[] = draftToWorkout(normalizedDraft)
     const localUpdatedAt = new Date().toISOString()
+
+    const workoutValidation = workoutSaveSchema.safeParse({
+      studentId: selectedStudentId,
+      workout,
+    })
+    if (!workoutValidation.success) {
+      setSyncMessage(workoutValidation.error.issues[0]?.message ?? 'Treino invalido para salvar.')
+      return
+    }
 
     setTrainerData((current) => ({
       ...current,
