@@ -63,6 +63,9 @@ export function StudentDetail() {
             <button type="button" className="btn-secondary" onClick={() => handleMenuClick('Treinos')}>
               Abrir treinos
             </button>
+            <button type="button" className="btn-primary" onClick={() => { void handleDeleteStudent() }}>
+              Excluir aluno
+            </button>
           </div>
         )}
       </div>
@@ -222,13 +225,6 @@ export function StudentDetail() {
                 disabled={!selectedStudent.studentUserId}
               >
                 Desvincular aluno
-              </button>
-              <button
-                type="button"
-                className="btn-ghost"
-                onClick={() => { void handleDeleteStudent() }}
-              >
-                Excluir aluno
               </button>
             </div>
           </div>
