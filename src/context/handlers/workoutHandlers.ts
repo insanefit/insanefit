@@ -15,6 +15,7 @@ import {
   saveExerciseVideoAttachmentRemotely,
   saveExerciseVideoMapRemotely,
 } from '../../services/trainerStore'
+import { enqueueSyncOperation } from '../../services/offlineSyncQueue'
 import {
   buildExerciseDbCandidateMap,
   findExerciseByApproxName,
@@ -519,6 +520,7 @@ export const createWorkoutHandlers = (deps: WorkoutHandlerDeps) => {
 
     const normalizedDraft = workoutDraft.filter((item) => item.name.trim().length > 0)
     const workout: Exercise[] = draftToWorkout(normalizedDraft)
+    const localUpdatedAt = new Date().toISOString()
 
     setTrainerData((current) => ({
       ...current,
@@ -539,10 +541,19 @@ export const createWorkoutHandlers = (deps: WorkoutHandlerDeps) => {
       workout,
       userId: currentUser.id,
     })
+    if (!syncResult.ok) {
+      const pending = enqueueSyncOperation({
+        type: 'workout.save',
+        userId: currentUser.id,
+        studentId: selectedStudentId,
+        workout,
+        localUpdatedAt,
+      })
+      setSyncMessage(`${syncResult.message} ${pending} sincronizacao(oes) pendente(s).`)
+      return
+    }
     setSyncMessage(
-      syncResult.ok
-        ? syncResult.message
-        : `${syncResult.message} Treino ficou salvo localmente e vamos tentar sincronizar no proximo envio.`,
+      syncResult.message,
     )
   }
 

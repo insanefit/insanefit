@@ -15,6 +15,7 @@ export type Student = {
   pixKey?: string
   shareCode?: string
   studentUserId?: string | null
+  updatedAt?: string
 }
 
 export type Session = {
@@ -24,6 +25,7 @@ export type Session = {
   studentId: string
   focus: string
   duration: number
+  updatedAt?: string
 }
 
 export type Exercise = {

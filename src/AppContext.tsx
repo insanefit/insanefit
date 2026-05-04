@@ -50,6 +50,7 @@ import {
   useAnimaticLibraryEffect,
   useAuthBootstrapEffect,
   useDataLoadEffect,
+  useOfflineSyncQueueEffect,
   usePendingClaimEffect,
   usePersistenceEffects,
   useRestTimerEffects,
@@ -377,6 +378,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
     authMessage,
     setSyncMessage,
     setAuthMessage,
+  })
+
+  useOfflineSyncQueueEffect({
+    authReady,
+    currentUser,
+    setSyncMessage,
   })
 
   usePendingClaimEffect({

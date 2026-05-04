@@ -20,6 +20,7 @@ import {
 } from '../../utils/exerciseUtils'
 import { loadProgressHistory, persistProgressHistory } from '../../utils/progressUtils'
 import { workoutToDraft } from '../../utils/workoutProtocol'
+import { flushSyncQueue, getSyncQueueCount } from '../../services/offlineSyncQueue'
 import type { CoachProfile } from '../../types/coach'
 import type { StudentPortalData, TrainerData, WorkoutByStudent } from '../../types/trainer'
 import type { BillingProfile } from '../../types/billing'
@@ -332,6 +333,63 @@ export const usePersistenceEffects = ({
       window.clearTimeout(timeoutId)
     }
   }, [syncMessage, authMessage, setSyncMessage, setAuthMessage])
+}
+
+type OfflineSyncDeps = {
+  authReady: boolean
+  currentUser: User | null
+  setSyncMessage: Dispatch<SetStateAction<string>>
+}
+
+export const useOfflineSyncQueueEffect = ({
+  authReady,
+  currentUser,
+  setSyncMessage,
+}: OfflineSyncDeps) => {
+  useEffect(() => {
+    if (!authReady || !hasSupabaseCredentials || !currentUser) return
+    let cancelled = false
+    let running = false
+
+    const runFlush = async () => {
+      if (running || cancelled) return
+      running = true
+      const result = await flushSyncQueue(currentUser.id)
+      running = false
+      if (cancelled) return
+
+      if (result.processed === 0 && result.skipped === 0 && result.failed === 0) {
+        return
+      }
+
+      const parts = [
+        result.processed > 0 ? `${result.processed} sincronizadas` : null,
+        result.skipped > 0 ? `${result.skipped} descartadas por conflito` : null,
+        result.failed > 0 ? `${result.failed} ainda pendentes` : null,
+      ].filter(Boolean)
+      if (parts.length > 0) {
+        setSyncMessage(`Fila offline: ${parts.join(' • ')}`)
+      }
+    }
+
+    void runFlush()
+
+    const handleOnline = () => {
+      void runFlush()
+    }
+
+    const intervalId = window.setInterval(() => {
+      if (getSyncQueueCount(currentUser.id) === 0) return
+      void runFlush()
+    }, 30000)
+
+    window.addEventListener('online', handleOnline)
+    return () => {
+      cancelled = true
+      window.removeEventListener('online', handleOnline)
+      window.clearInterval(intervalId)
+    }
+  }, [authReady, currentUser, setSyncMessage])
 }
 
 type PendingClaimDeps = {

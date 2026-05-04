@@ -7,6 +7,7 @@ import {
   updateSessionRemotely,
   unlinkStudentAccessRemotely,
 } from '../../services/trainerStore'
+import { enqueueSyncOperation } from '../../services/offlineSyncQueue'
 import { canCreateStudent } from '../../services/billingStore'
 import {
   buildCurrentMonthRef,
@@ -143,6 +144,7 @@ export const createStudentHandlers = (deps: StudentHandlerDeps) => {
       dueDay,
       pixKey: pixKey || undefined,
       studentUserId: null,
+      updatedAt: new Date().toISOString(),
     }
 
     const starterExercises: Exercise[] = [
@@ -210,10 +212,27 @@ export const createStudentHandlers = (deps: StudentHandlerDeps) => {
         ...current,
         students: current.students.map((student) =>
           student.id === newStudent.id
-            ? { ...student, shareCode: savedStudent.shareCode, studentUserId: savedStudent.studentUserId ?? null }
+            ? {
+                ...student,
+                shareCode: savedStudent.shareCode,
+                studentUserId: savedStudent.studentUserId ?? null,
+                updatedAt: savedStudent.updatedAt ?? student.updatedAt,
+              }
             : student,
         ),
       }))
+    }
+
+    if ((!savedStudent || !exercisesSaved) && currentUser) {
+      const pending = enqueueSyncOperation({
+        type: 'student.create',
+        userId: currentUser.id,
+        student: newStudent,
+        starterExercises,
+        localUpdatedAt: newStudent.updatedAt,
+      })
+      setSyncMessage(`Aluno salvo localmente. ${pending} sincronizacao(oes) pendente(s).`)
+      return
     }
 
     void invalidateFinanceCache()
@@ -277,6 +296,7 @@ export const createStudentHandlers = (deps: StudentHandlerDeps) => {
       monthlyFee,
       dueDay,
       pixKey: pixKey || undefined,
+      updatedAt: new Date().toISOString(),
     }
 
     setTrainerData((current) => ({
@@ -330,7 +350,13 @@ export const createStudentHandlers = (deps: StudentHandlerDeps) => {
       setSyncMessage('Aluno atualizado. Revise o financeiro no painel.')
       return
     }
-    setSyncMessage('Aluno atualizado localmente. Verifique o Supabase.')
+    const pending = enqueueSyncOperation({
+      type: 'student.update',
+      userId: currentUser.id,
+      student: updatedStudent,
+      localUpdatedAt: updatedStudent.updatedAt,
+    })
+    setSyncMessage(`Aluno atualizado localmente. ${pending} sincronizacao(oes) pendente(s).`)
   }
 
   const resetSessionForm = () => {
@@ -369,6 +395,7 @@ export const createStudentHandlers = (deps: StudentHandlerDeps) => {
       studentId: sessionForm.studentId,
       focus: sessionForm.focus.trim(),
       duration: Number(sessionForm.duration) || 60,
+      updatedAt: new Date().toISOString(),
     }
 
     if (editingSessionId) {
@@ -395,6 +422,20 @@ export const createStudentHandlers = (deps: StudentHandlerDeps) => {
     const saved = editingSessionId
       ? await updateSessionRemotely(baseSession, currentUser.id)
       : await saveSessionRemotely(baseSession, currentUser.id)
+    if (!saved) {
+      const pending = enqueueSyncOperation({
+        type: editingSessionId ? 'session.update' : 'session.create',
+        userId: currentUser.id,
+        session: baseSession,
+        localUpdatedAt: baseSession.updatedAt,
+      })
+      setSyncMessage(
+        editingSessionId
+          ? `Aula atualizada localmente. ${pending} sincronizacao(oes) pendente(s).`
+          : `Aula salva localmente. ${pending} sincronizacao(oes) pendente(s).`,
+      )
+      return
+    }
     setSyncMessage(
       saved
         ? editingSessionId

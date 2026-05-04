@@ -15,6 +15,7 @@ export const studentRowSchema = z.object({
   whatsapp: z.string().nullable().optional(),
   share_code: z.string().nullable(),
   student_user_id: z.string().nullable(),
+  updated_at: z.string().nullable().optional(),
 })
 
 export const sessionRowSchema = z.object({
@@ -25,6 +26,7 @@ export const sessionRowSchema = z.object({
   student_id: z.string(),
   focus: z.string(),
   duration: z.number(),
+  updated_at: z.string().nullable().optional(),
 })
 
 export const exerciseRowSchema = z.object({

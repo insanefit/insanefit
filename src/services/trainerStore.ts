@@ -190,6 +190,7 @@ const mapStudentRow = (item: StudentRow, meta?: StudentMeta): Student => {
     whatsapp: whatsappValue || undefined,
     shareCode: item.share_code ?? undefined,
     studentUserId: item.student_user_id,
+    updatedAt: item.updated_at ?? undefined,
   }
 }
 
@@ -219,6 +220,7 @@ const mapSupabaseData = (
     studentId: item.student_id,
     focus: item.focus,
     duration: item.duration,
+    updatedAt: item.updated_at ?? undefined,
   }))
 
   const workoutByStudent: WorkoutByStudent = {}
@@ -798,6 +800,7 @@ export const loadStudentPortalData = async (userId: string): Promise<StudentPort
     studentId: item.student_id,
     focus: item.focus,
     duration: item.duration,
+    updatedAt: item.updated_at ?? undefined,
   }))
 
   const workout: Exercise[] = exerciseRows.map((item) => ({

@@ -84,6 +84,12 @@ Sem configurar variaveis de ambiente, o app roda em modo local com dados salvos 
 - Persistencia de progresso do aluno em:
   - `localStorage` (fallback imediato)
   - `IndexedDB` (resiliencia offline ampliada)
+- Fila de mutacoes offline para escrita no Supabase:
+  - Aluno (create/update)
+  - Aula (create/update)
+  - Treino (save)
+  - Flush automatico ao voltar online + tentativa periodica
+  - Resolucao de conflito por timestamp remoto (`updated_at` quando disponivel)
 
 ## Conectar no Supabase (opcional)
 
