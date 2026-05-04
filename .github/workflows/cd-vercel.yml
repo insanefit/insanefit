@@ -47,14 +47,8 @@ jobs:
       - name: Link Project Explicitly
         run: npx vercel link --yes --project="$VERCEL_PROJECT_NAME" --scope="$VERCEL_SCOPE" --token="$VERCEL_TOKEN"
 
-      - name: Pull Vercel Environment (Preview)
-        run: npx vercel pull --yes --environment=preview --scope="$VERCEL_SCOPE" --token="$VERCEL_TOKEN"
-
-      - name: Build Project Artifacts
-        run: npx vercel build --scope="$VERCEL_SCOPE" --token="$VERCEL_TOKEN"
-
       - name: Deploy Preview
-        run: npx vercel deploy --prebuilt --scope="$VERCEL_SCOPE" --token="$VERCEL_TOKEN"
+        run: npx vercel deploy --yes --scope="$VERCEL_SCOPE" --token="$VERCEL_TOKEN"
 
   deploy-production:
     name: Deploy Production
@@ -80,11 +74,5 @@ jobs:
       - name: Link Project Explicitly
         run: npx vercel link --yes --project="$VERCEL_PROJECT_NAME" --scope="$VERCEL_SCOPE" --token="$VERCEL_TOKEN"
 
-      - name: Pull Vercel Environment (Production)
-        run: npx vercel pull --yes --environment=production --scope="$VERCEL_SCOPE" --token="$VERCEL_TOKEN"
-
-      - name: Build Project Artifacts
-        run: npx vercel build --prod --scope="$VERCEL_SCOPE" --token="$VERCEL_TOKEN"
-
       - name: Deploy Production
-        run: npx vercel deploy --prebuilt --prod --scope="$VERCEL_SCOPE" --token="$VERCEL_TOKEN"
+        run: npx vercel deploy --prod --yes --scope="$VERCEL_SCOPE" --token="$VERCEL_TOKEN"
