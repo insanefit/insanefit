@@ -46,6 +46,12 @@ Rodar uma vez (modo CI):
 npm run test:run
 ```
 
+Gerar cobertura local:
+
+```bash
+npm run test:coverage
+```
+
 ## Documentacao
 
 - Guia de contribuicao: `CONTRIBUTING.md`
