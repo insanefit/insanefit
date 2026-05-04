@@ -30,7 +30,7 @@ jobs:
     env:
       VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
       VERCEL_SCOPE: isamarjunior-1867s-projects
-      VERCEL_PROJECT_NAME: insanefit
+      VERCEL_PROJECT_NAME: insane-fit
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -63,7 +63,7 @@ jobs:
     env:
       VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
       VERCEL_SCOPE: isamarjunior-1867s-projects
-      VERCEL_PROJECT_NAME: insanefit
+      VERCEL_PROJECT_NAME: insane-fit
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -76,6 +76,9 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Link Project Explicitly
+        run: npx vercel link --yes --project="$VERCEL_PROJECT_NAME" --scope="$VERCEL_SCOPE" --token="$VERCEL_TOKEN"
 
       - name: Pull Vercel Environment (Production)
         run: npx vercel pull --yes --environment=production --scope="$VERCEL_SCOPE" --token="$VERCEL_TOKEN"
