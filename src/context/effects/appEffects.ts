@@ -21,6 +21,7 @@ import {
 import { loadProgressHistory, persistProgressHistory } from '../../utils/progressUtils'
 import { workoutToDraft } from '../../utils/workoutProtocol'
 import { flushSyncQueue, getSyncQueueCount } from '../../services/offlineSyncQueue'
+import { cancelIdleTask, scheduleIdleTask } from '../../utils/idle'
 import type { CoachProfile } from '../../types/coach'
 import type { StudentPortalData, TrainerData, WorkoutByStudent } from '../../types/trainer'
 import type { BillingProfile } from '../../types/billing'
@@ -52,7 +53,9 @@ export const useAnimaticLibraryEffect = (
   useEffect(() => {
     if (!shouldLoadHeavyMedia) return
     let cancelled = false
-    void loadBundledExerciseVideoMap()
+    const idleHandle = scheduleIdleTask(() => {
+      void loadBundledExerciseVideoMap()
+    })
     loadAnimaticLibrary().then((merged) => {
       if (!cancelled) {
         setMergedExerciseLibrary(merged)
@@ -60,6 +63,7 @@ export const useAnimaticLibraryEffect = (
     })
     return () => {
       cancelled = true
+      cancelIdleTask(idleHandle)
     }
   }, [setMergedExerciseLibrary, shouldLoadHeavyMedia])
 }
