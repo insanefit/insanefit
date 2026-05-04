@@ -29,6 +29,7 @@ import { formatTimer } from './utils/timerUtils'
 import { parseWorkoutProtocolFromExercise, getExerciseRestPreset } from './utils/workoutProtocol'
 import { workoutTemplates } from './constants/workoutTemplates'
 import {
+  type AppContextType,
   AppContext,
   AuthContext,
   BillingCoachContext,
@@ -77,7 +78,6 @@ import {
   useMetaDerivedState,
   useTrainerDerivedState,
 } from './context/derived/appDerivedState'
-import { buildAppContextValue } from './context/factories/buildAppContextValue'
 import { clearRecoveryUrlArtifacts } from './context/helpers/recoveryUrl'
 import { renderDemoMedia } from './context/helpers/renderDemoMedia'
 import { billingQueryKeys, portalQueryKeys, useBillingProfileQuery, useStudentPortalQuery } from './queries/accountQueries'
@@ -1052,30 +1052,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
     mergedExerciseLibrary,
   ])
 
-  const value = useMemo(() => buildAppContextValue({
-    authContextInput,
-    trainerContextInput,
-    workoutContextInput,
-    billingAndCoachContextInput,
-    timerAndStudentPortalContextInput,
-    metaContextInput,
-  }), [
-    authContextInput,
-    trainerContextInput,
-    workoutContextInput,
-    billingAndCoachContextInput,
-    timerAndStudentPortalContextInput,
-    metaContextInput,
-  ])
+  // AppContext legado: mantido apenas por compatibilidade.
+  // O app usa os contextos segmentados (Auth/Trainer/Workout/etc.),
+  // evitando merge de um objeto gigante a cada render.
+  const legacyAppContextValue = authContextInput as unknown as AppContextType
 
   return (
-    <AppContext.Provider value={value}>
-      <AuthContext.Provider value={authContextInput as unknown as typeof value}>
-        <TrainerContext.Provider value={trainerContextInput as unknown as typeof value}>
-          <WorkoutContext.Provider value={workoutContextInput as unknown as typeof value}>
-            <BillingCoachContext.Provider value={billingAndCoachContextInput as unknown as typeof value}>
-              <TimerPortalContext.Provider value={timerAndStudentPortalContextInput as unknown as typeof value}>
-                <MetaContext.Provider value={metaContextInput as unknown as typeof value}>
+    <AppContext.Provider value={legacyAppContextValue}>
+      <AuthContext.Provider value={authContextInput as unknown as AppContextType}>
+        <TrainerContext.Provider value={trainerContextInput as unknown as AppContextType}>
+          <WorkoutContext.Provider value={workoutContextInput as unknown as AppContextType}>
+            <BillingCoachContext.Provider value={billingAndCoachContextInput as unknown as AppContextType}>
+              <TimerPortalContext.Provider value={timerAndStudentPortalContextInput as unknown as AppContextType}>
+                <MetaContext.Provider value={metaContextInput as unknown as AppContextType}>
                   {children}
                 </MetaContext.Provider>
               </TimerPortalContext.Provider>
