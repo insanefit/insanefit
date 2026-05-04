@@ -11,8 +11,7 @@ export const studentFormSchema = z.object({
     .regex(/^\d{0,15}$/, 'WhatsApp invalido. Use apenas numeros.')
     .optional()
     .or(z.literal('')),
-  monthlyFee: z.number().min(0, 'Mensalidade invalida.'),
-  dueDay: z.number().int().min(1, 'Dia de vencimento invalido.').max(31, 'Dia de vencimento invalido.'),
+  validityDays: z.number().int().min(1, 'Validade invalida.').max(3650, 'Validade invalida.'),
 })
 
 export const sessionFormSchema = z.object({
@@ -34,4 +33,3 @@ export const workoutSaveSchema = z.object({
     )
     .max(250, 'Limite de 250 exercicios por treino.'),
 })
-

@@ -24,6 +24,27 @@ export function StudentDetail() {
     getStudentWorkoutType,
   } = useMetaContext()
 
+  const computeAccessStatus = () => {
+    if (!selectedStudent?.accessEndDate) {
+      return { label: 'Sem validade definida', hint: 'Defina a validade no cadastro do aluno.', expired: false }
+    }
+    const endDate = new Date(`${selectedStudent.accessEndDate}T23:59:59`)
+    if (Number.isNaN(endDate.getTime())) {
+      return { label: 'Validade inválida', hint: 'Revise a data de validade.', expired: false }
+    }
+    const now = new Date()
+    const diffDays = Math.ceil((endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+    if (diffDays < 0) {
+      return { label: 'Expirado', hint: `Expirou há ${Math.abs(diffDays)} dia(s).`, expired: true }
+    }
+    if (diffDays === 0) {
+      return { label: 'Vence hoje', hint: 'Renove para evitar bloqueio do aluno.', expired: false }
+    }
+    return { label: 'Ativo', hint: `Vence em ${diffDays} dia(s).`, expired: false }
+  }
+
+  const accessStatus = computeAccessStatus()
+
   return (
     <section className="panel">
       <div className="panel-head">
@@ -72,20 +93,19 @@ export function StudentDetail() {
             <strong>{selectedStudent.whatsapp ?? 'Nao informado'}</strong>
           </div>
           <div className="detail-block">
-            <span>Mensalidade</span>
-            <strong>
-              {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
-                selectedStudent.monthlyFee ?? 0,
-              )}
-            </strong>
+            <span>Início da validade</span>
+            <strong>{selectedStudent.accessStartDate ?? 'Não definido'}</strong>
           </div>
           <div className="detail-block">
-            <span>Vencimento</span>
-            <strong>Dia {String(selectedStudent.dueDay ?? 10).padStart(2, '0')}</strong>
+            <span>Fim da validade</span>
+            <strong>{selectedStudent.accessEndDate ?? 'Não definido'}</strong>
           </div>
           <div className="detail-block full">
-            <span>Chave PIX do personal</span>
-            <strong>{selectedStudent.pixKey?.trim() || 'Nao informada'}</strong>
+            <span>Status da validade</span>
+            <strong>
+              {accessStatus.label} {accessStatus.expired ? '🔒' : '✅'}
+            </strong>
+            <small>{accessStatus.hint}</small>
           </div>
           {editingStudent && (
             <div className="detail-block full">
@@ -156,45 +176,18 @@ export function StudentDetail() {
                   }
                   placeholder="5591999999999"
                 />
-                <div className="split-grid">
-                  <div>
-                    <label className="field-label" htmlFor="edit-student-monthly-fee">Mensalidade (R$)</label>
-                    <input
-                      id="edit-student-monthly-fee"
-                      className="field-input"
-                      type="number"
-                      min={0}
-                      step={10}
-                      value={studentEditForm.monthlyFee}
-                      onChange={(event) =>
-                        setStudentEditForm((current) => ({ ...current, monthlyFee: event.target.value }))
-                      }
-                    />
-                  </div>
-                  <div>
-                    <label className="field-label" htmlFor="edit-student-due-day">Vencimento</label>
-                    <input
-                      id="edit-student-due-day"
-                      className="field-input"
-                      type="number"
-                      min={1}
-                      max={31}
-                      value={studentEditForm.dueDay}
-                      onChange={(event) =>
-                        setStudentEditForm((current) => ({ ...current, dueDay: event.target.value }))
-                      }
-                    />
-                  </div>
-                </div>
-                <label className="field-label" htmlFor="edit-student-pix-key">Chave PIX do personal</label>
+                <label className="field-label" htmlFor="edit-student-validity-days">Validade do acesso (dias)</label>
                 <input
-                  id="edit-student-pix-key"
+                  id="edit-student-validity-days"
                   className="field-input"
-                  value={studentEditForm.pixKey}
+                  type="number"
+                  min={1}
+                  max={3650}
+                  value={studentEditForm.validityDays}
                   onChange={(event) =>
-                    setStudentEditForm((current) => ({ ...current, pixKey: event.target.value }))
+                    setStudentEditForm((current) => ({ ...current, validityDays: event.target.value }))
                   }
-                  placeholder="email, telefone, cpf ou chave aleatoria"
+                  placeholder="30"
                 />
                 <div className="student-access-actions">
                   <button type="submit" className="btn-secondary">Salvar alteracoes</button>

@@ -9,8 +9,7 @@ describe('formSchemas', () => {
       trainingLevel: 'Iniciante',
       workoutType: 'Hipertrofia',
       whatsapp: '5591999999999',
-      monthlyFee: 120,
-      dueDay: 10,
+      validityDays: 30,
     })
 
     expect(parsed.success).toBe(true)
@@ -23,8 +22,7 @@ describe('formSchemas', () => {
       trainingLevel: 'Iniciante',
       workoutType: 'Hipertrofia',
       whatsapp: '',
-      monthlyFee: 120,
-      dueDay: 10,
+      validityDays: 30,
     })
 
     expect(parsed.success).toBe(false)
@@ -51,4 +49,3 @@ describe('formSchemas', () => {
     expect(parsed.success).toBe(false)
   })
 })
-

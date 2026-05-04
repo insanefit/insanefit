@@ -15,6 +15,8 @@ export const studentRowSchema = z.object({
   whatsapp: z.string().nullable().optional(),
   share_code: z.string().nullable(),
   student_user_id: z.string().nullable(),
+  access_start_date: z.string().nullable().optional(),
+  access_end_date: z.string().nullable().optional(),
   updated_at: z.string().nullable().optional(),
 })
 

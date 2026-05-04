@@ -15,6 +15,8 @@ export type Student = {
   pixKey?: string
   shareCode?: string
   studentUserId?: string | null
+  accessStartDate?: string
+  accessEndDate?: string
   updatedAt?: string
 }
 
@@ -48,14 +50,4 @@ export type StudentPortalData = {
   student: Student
   sessions: Session[]
   workout: Exercise[]
-  finance?: {
-    monthlyFee: number
-    dueDay: number
-    paymentMethod: 'pix'
-    paymentStatus: 'paid' | 'pending' | 'overdue'
-    monthRef: string
-    lastPaidMonth: string | null
-    lastPaidAt: string | null
-    pixKey: string
-  }
 }

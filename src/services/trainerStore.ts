@@ -16,7 +16,6 @@ import {
   parseSingle,
   sessionRowSchema,
   studentPaymentSummaryRowSchema,
-  studentPortalFinanceRowSchema,
   studentRowSchema,
   trainerProfilePixSchema,
 } from '../schemas/supabaseSchemas'
@@ -49,8 +48,6 @@ type ExerciseVideoAttachment = {
   notes: string
   updatedAt: string
 }
-
-type StudentPortalFinanceRow = z.infer<typeof studentPortalFinanceRowSchema>
 
 type StudentMeta = {
   whatsapp?: string
@@ -200,6 +197,8 @@ const mapStudentRow = (item: StudentRow, meta?: StudentMeta): Student => {
     whatsapp: whatsappValue || undefined,
     shareCode: item.share_code ?? undefined,
     studentUserId: item.student_user_id,
+    accessStartDate: item.access_start_date ?? undefined,
+    accessEndDate: item.access_end_date ?? undefined,
     updatedAt: item.updated_at ?? undefined,
   }
 }
@@ -672,6 +671,8 @@ export const saveStudentRemotely = async (student: Student, userId: string): Pro
       workout_type: student.workoutType ?? student.objective,
       whatsapp: student.whatsapp ?? null,
       student_user_id: student.studentUserId ?? null,
+      access_start_date: student.accessStartDate ?? null,
+      access_end_date: student.accessEndDate ?? null,
     }
 
   const normalizedInsert = await (supabase
@@ -731,6 +732,8 @@ export const updateStudentRemotely = async (student: Student, userId: string): P
       training_level: student.trainingLevel ?? student.plan,
       workout_type: student.workoutType ?? student.objective,
       whatsapp: student.whatsapp ?? null,
+      access_start_date: student.accessStartDate ?? null,
+      access_end_date: student.accessEndDate ?? null,
     }
 
   const normalizedUpdate = await (supabase
@@ -788,7 +791,7 @@ export const loadStudentPortalData = async (userId: string): Promise<StudentPort
     return null
   }
 
-  const [sessionsResponse, exercisesResponse, financeResponse] = await Promise.all([
+  const [sessionsResponse, exercisesResponse] = await Promise.all([
     supabase
       .from('sessions')
       .select('*')
@@ -799,7 +802,6 @@ export const loadStudentPortalData = async (userId: string): Promise<StudentPort
       .from('exercises')
       .select('*')
       .eq('student_id', studentRow.id),
-    supabase.rpc('get_student_portal_finance'),
   ])
 
   const sessionsRows = parseRows(sessionRowSchema, sessionsResponse.error ? [] : (sessionsResponse.data ?? []))
@@ -823,28 +825,10 @@ export const loadStudentPortalData = async (userId: string): Promise<StudentPort
     routine: item.routine ?? undefined,
   }))
 
-  const financeRaw = parseSingle(
-    studentPortalFinanceRowSchema,
-    financeResponse.error ? null : Array.isArray(financeResponse.data) ? financeResponse.data[0] : null,
-  ) as StudentPortalFinanceRow | null
-  const finance = financeRaw
-    ? {
-        monthlyFee: Number(financeRaw.monthly_fee ?? 0),
-        dueDay: Number(financeRaw.due_day ?? 10),
-        paymentMethod: 'pix' as const,
-        paymentStatus: (financeRaw.payment_status ?? 'pending') as 'paid' | 'pending' | 'overdue',
-        monthRef: financeRaw.month_ref ?? '',
-        lastPaidMonth: financeRaw.payment_status === 'paid' ? financeRaw.month_ref : null,
-        lastPaidAt: financeRaw.last_paid_at,
-        pixKey: (financeRaw.pix_key ?? '').trim(),
-      }
-    : undefined
-
   return {
     student: mapStudentRow(studentRow, readStudentMetaMap(userId)[studentRow.id]),
     sessions,
     workout,
-    finance,
   }
 }
 

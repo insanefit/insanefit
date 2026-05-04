@@ -84,6 +84,8 @@ alter table students add column if not exists sex text;
 alter table students add column if not exists training_level text;
 alter table students add column if not exists workout_type text;
 alter table students add column if not exists whatsapp text;
+alter table students add column if not exists access_start_date date;
+alter table students add column if not exists access_end_date date;
 alter table trainer_profiles add column if not exists display_name text;
 alter table trainer_profiles add column if not exists coach_title text;
 alter table trainer_profiles add column if not exists coach_avatar_url text;
@@ -115,6 +117,14 @@ where training_level is null and coalesce(trim(plan), '') <> '';
 update students
 set workout_type = objective
 where workout_type is null and coalesce(trim(objective), '') <> '';
+
+update students
+set access_start_date = coalesce(access_start_date, current_date)
+where access_start_date is null;
+
+update students
+set access_end_date = coalesce(access_end_date, (access_start_date + interval '30 day')::date)
+where access_end_date is null;
 
 alter table students alter column share_code set not null;
 alter table trainer_profiles alter column display_name set default '';

@@ -22,9 +22,7 @@ export type StudentFormState = {
   trainingLevel: string
   workoutType: string
   whatsapp: string
-  monthlyFee: string
-  dueDay: string
-  pixKey: string
+  validityDays: string
 }
 
 export type SessionFormState = {

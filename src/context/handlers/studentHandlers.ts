@@ -9,11 +9,6 @@ import {
 } from '../../services/trainerStore'
 import { enqueueSyncOperation } from '../../services/offlineSyncQueue'
 import { canCreateStudent } from '../../services/billingStore'
-import {
-  buildCurrentMonthRef,
-  saveTrainerPixKeyRemotely,
-  upsertTrainerStudentPayment,
-} from '../../services/paymentStore'
 import { sessionFormSchema, studentFormSchema } from '../../schemas/formSchemas'
 import type { BillingProfile } from '../../types/billing'
 import { getPlanDefinition } from '../../data/plans'
@@ -52,7 +47,6 @@ type StudentHandlerDeps = {
   setStudentEditForm: Dispatch<SetStateAction<StudentFormState>>
   setStudentPortal: Dispatch<SetStateAction<StudentPortalData | null>>
   setAppMode: Dispatch<SetStateAction<AppMode>>
-  invalidateFinanceCache: () => Promise<void> | void
 }
 
 export const createStudentHandlers = (deps: StudentHandlerDeps) => {
@@ -84,7 +78,6 @@ export const createStudentHandlers = (deps: StudentHandlerDeps) => {
     setStudentEditForm,
     setStudentPortal,
     setAppMode,
-    invalidateFinanceCache,
   } = deps
 
   const normalizeWhatsapp = (value: string): string => {
@@ -103,22 +96,16 @@ export const createStudentHandlers = (deps: StudentHandlerDeps) => {
     return code
   }
 
-  const parseMonthlyFee = (value: string): number => {
-    const trimmed = value.trim().replace(/[^\d,.-]/g, '')
-    if (!trimmed) return 0
-    const normalized =
-      trimmed.includes(',') && trimmed.includes('.')
-        ? trimmed.replace(/\./g, '').replace(',', '.')
-        : trimmed.replace(',', '.')
-    const parsed = Number(normalized)
-    if (!Number.isFinite(parsed)) return 0
-    return Math.max(0, parsed)
+  const parseValidityDays = (value: string): number => {
+    const parsed = Number(value)
+    if (!Number.isFinite(parsed)) return 30
+    return Math.max(1, Math.min(3650, Math.round(parsed)))
   }
 
-  const parseDueDay = (value: string): number => {
-    const parsed = Number(value)
-    if (!Number.isFinite(parsed)) return 10
-    return Math.max(1, Math.min(31, Math.round(parsed)))
+  const addDaysIsoDate = (baseDate: Date, days: number): string => {
+    const nextDate = new Date(baseDate)
+    nextDate.setDate(nextDate.getDate() + days)
+    return nextDate.toISOString().slice(0, 10)
   }
 
   const handleCreateStudent = async (event: FormEvent<HTMLFormElement>) => {
@@ -134,17 +121,16 @@ export const createStudentHandlers = (deps: StudentHandlerDeps) => {
     const trainingLevel = studentForm.trainingLevel.trim()
     const workoutType = studentForm.workoutType.trim()
     const whatsapp = normalizeWhatsapp(studentForm.whatsapp.trim())
-    const monthlyFee = parseMonthlyFee(studentForm.monthlyFee)
-    const dueDay = parseDueDay(studentForm.dueDay)
-    const pixKey = studentForm.pixKey.trim()
+    const validityDays = parseValidityDays(studentForm.validityDays)
+    const accessStartDate = new Date().toISOString().slice(0, 10)
+    const accessEndDate = addDaysIsoDate(new Date(), validityDays)
     const studentValidation = studentFormSchema.safeParse({
       name,
       sex,
       trainingLevel,
       workoutType,
       whatsapp,
-      monthlyFee,
-      dueDay,
+      validityDays,
     })
     if (!studentValidation.success) {
       setSyncMessage(studentValidation.error.issues[0]?.message ?? 'Dados do aluno invalidos.')
@@ -163,9 +149,8 @@ export const createStudentHandlers = (deps: StudentHandlerDeps) => {
       trainingLevel,
       workoutType,
       whatsapp: whatsapp || undefined,
-      monthlyFee,
-      dueDay,
-      pixKey: pixKey || undefined,
+      accessStartDate,
+      accessEndDate,
       shareCode: generateShareCode(),
       studentUserId: null,
       updatedAt: new Date().toISOString(),
@@ -210,27 +195,6 @@ export const createStudentHandlers = (deps: StudentHandlerDeps) => {
       userId: currentUser.id,
     })
 
-    let paymentSynced = false
-    if (savedStudent) {
-      const monthRef = buildCurrentMonthRef()
-      if (pixKey) {
-        await saveTrainerPixKeyRemotely({
-          userId: currentUser.id,
-          pixKey,
-        })
-      }
-      const paymentResult = await upsertTrainerStudentPayment({
-        userId: currentUser.id,
-        studentId: newStudent.id,
-        monthRef,
-        monthlyFee,
-        dueDay,
-        pixKey,
-        markAsPaid: false,
-      })
-      paymentSynced = paymentResult.ok
-    }
-
     if (savedStudent) {
       setTrainerData((current) => ({
         ...current,
@@ -259,14 +223,8 @@ export const createStudentHandlers = (deps: StudentHandlerDeps) => {
       return
     }
 
-    void invalidateFinanceCache()
-
-    if (savedStudent && exercisesSaved && paymentSynced) {
-      setSyncMessage('Aluno salvo com financeiro sincronizado no Supabase.')
-      return
-    }
     if (savedStudent && exercisesSaved) {
-      setSyncMessage('Aluno salvo no Supabase. Financeiro salvo parcialmente.')
+      setSyncMessage('Aluno salvo no Supabase com validade ativa.')
       return
     }
     setSyncMessage('Aluno salvo localmente. Confira as tabelas no Supabase.')
@@ -299,17 +257,16 @@ export const createStudentHandlers = (deps: StudentHandlerDeps) => {
     const trainingLevel = studentEditForm.trainingLevel.trim()
     const workoutType = studentEditForm.workoutType.trim()
     const whatsapp = normalizeWhatsapp(studentEditForm.whatsapp.trim())
-    const monthlyFee = parseMonthlyFee(studentEditForm.monthlyFee)
-    const dueDay = parseDueDay(studentEditForm.dueDay)
-    const pixKey = studentEditForm.pixKey.trim()
+    const validityDays = parseValidityDays(studentEditForm.validityDays)
+    const accessStartDate = selectedStudent.accessStartDate ?? new Date().toISOString().slice(0, 10)
+    const accessEndDate = addDaysIsoDate(new Date(accessStartDate), validityDays)
     const studentValidation = studentFormSchema.safeParse({
       name,
       sex,
       trainingLevel,
       workoutType,
       whatsapp,
-      monthlyFee,
-      dueDay,
+      validityDays,
     })
     if (!studentValidation.success) {
       setSyncMessage(studentValidation.error.issues[0]?.message ?? 'Dados do aluno invalidos.')
@@ -326,9 +283,8 @@ export const createStudentHandlers = (deps: StudentHandlerDeps) => {
       trainingLevel,
       workoutType,
       whatsapp: whatsapp || undefined,
-      monthlyFee,
-      dueDay,
-      pixKey: pixKey || undefined,
+      accessStartDate,
+      accessEndDate,
       updatedAt: new Date().toISOString(),
     }
 
@@ -354,33 +310,8 @@ export const createStudentHandlers = (deps: StudentHandlerDeps) => {
 
     const saved = await syncUpdateStudentRemote({ student: updatedStudent, userId: currentUser.id })
 
-    let pixSynced = true
-    if (pixKey) {
-      const pixResult = await saveTrainerPixKeyRemotely({
-        userId: currentUser.id,
-        pixKey,
-      })
-      pixSynced = pixResult.ok
-    }
-
-    const paymentResult = await upsertTrainerStudentPayment({
-      userId: currentUser.id,
-      studentId: updatedStudent.id,
-      monthRef: buildCurrentMonthRef(),
-      monthlyFee,
-      dueDay,
-      pixKey,
-      markAsPaid: false,
-    })
-
-    void invalidateFinanceCache()
-
-    if (saved && paymentResult.ok && pixSynced) {
-      setSyncMessage('Aluno atualizado com financeiro sincronizado.')
-      return
-    }
     if (saved) {
-      setSyncMessage('Aluno atualizado. Revise o financeiro no painel.')
+      setSyncMessage('Aluno atualizado com nova validade de acesso.')
       return
     }
     const pending = enqueueSyncOperation({

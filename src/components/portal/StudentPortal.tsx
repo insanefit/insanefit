@@ -60,14 +60,6 @@ type ExerciseThumbAsset =
   | { kind: 'image'; url: string }
   | { kind: 'youtube'; videoId: string }
 
-type StudentFinanceSnapshot = {
-  monthlyFee: number
-  dueDay: number
-  lastPaidMonth: string | null
-  lastPaidAt: string | null
-  pixKey: string
-}
-
 const toPositiveInt = (value: string, fallback: number): number => {
   const parsed = Number((value.match(/\d+/) || [])[0] || '')
   if (!Number.isFinite(parsed) || parsed <= 0) return fallback
@@ -327,59 +319,46 @@ const resolveExerciseThumbnailAsset = (
   return { kind: 'none' }
 }
 
-const studentFinancePublicKey = 'insanefit:student-finance-public:v1'
-const studentPixPublicKey = 'insanefit:student-pix-public:v1'
-
-const normalizeStudentFinanceSnapshot = (value: unknown): StudentFinanceSnapshot | null => {
-  if (!isRecord(value)) return null
-  const monthlyFee = Number(value.monthlyFee)
-  const dueDay = Number(value.dueDay)
-  return {
-    monthlyFee: Number.isFinite(monthlyFee) ? Math.max(0, monthlyFee) : 0,
-    dueDay: Number.isFinite(dueDay) ? Math.max(1, Math.min(31, Math.round(dueDay))) : 10,
-    lastPaidMonth: typeof value.lastPaidMonth === 'string' ? value.lastPaidMonth : null,
-    lastPaidAt: typeof value.lastPaidAt === 'string' ? value.lastPaidAt : null,
-    pixKey: typeof value.pixKey === 'string' ? value.pixKey : '',
-  }
-}
-
-const readStudentFinanceSnapshot = (studentId: string): StudentFinanceSnapshot => {
-  const fallback: StudentFinanceSnapshot = {
-    monthlyFee: 0,
-    dueDay: 10,
-    lastPaidMonth: null,
-    lastPaidAt: null,
-    pixKey: '',
-  }
-
-  if (!studentId || typeof window === 'undefined') return fallback
-
-  try {
-    const rawPublicMap = window.localStorage.getItem(studentFinancePublicKey)
-    const parsedPublicMap = rawPublicMap ? (JSON.parse(rawPublicMap) as Record<string, unknown>) : {}
-    const publicEntry = normalizeStudentFinanceSnapshot(parsedPublicMap?.[studentId])
-    const rawPix = window.localStorage.getItem(studentPixPublicKey) ?? ''
-    const pixKey = rawPix.trim()
-
+const getPortalAccessState = (accessEndDate?: string) => {
+  if (!accessEndDate) {
     return {
-      ...fallback,
-      ...(publicEntry ?? {}),
-      pixKey: publicEntry?.pixKey?.trim() || pixKey,
+      blocked: false,
+      badge: 'Sem validade',
+      hint: 'Seu personal ainda não definiu uma validade para sua conta.',
     }
-  } catch {
-    return fallback
+  }
+
+  const endDate = new Date(`${accessEndDate}T23:59:59`)
+  if (Number.isNaN(endDate.getTime())) {
+    return {
+      blocked: false,
+      badge: 'Validade inválida',
+      hint: 'Sua validade está com formato inválido. Fale com seu personal.',
+    }
+  }
+
+  const now = new Date()
+  const diffDays = Math.ceil((endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+  if (diffDays < 0) {
+    return {
+      blocked: true,
+      badge: 'Acesso expirado',
+      hint: `Seu acesso expirou há ${Math.abs(diffDays)} dia(s). Fale com seu personal para renovar.`,
+    }
+  }
+  if (diffDays === 0) {
+    return {
+      blocked: false,
+      badge: 'Vence hoje',
+      hint: 'Seu acesso vence hoje. Peça renovação ao personal.',
+    }
+  }
+  return {
+    blocked: false,
+    badge: 'Acesso ativo',
+    hint: `Seu acesso está ativo e vence em ${diffDays} dia(s).`,
   }
 }
-
-const getFinanceStatus = (snapshot: StudentFinanceSnapshot): 'paid' | 'pending' | 'overdue' => {
-  const now = new Date()
-  const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
-  if (snapshot.lastPaidMonth === monthKey) return 'paid'
-  return now.getDate() > snapshot.dueDay ? 'overdue' : 'pending'
-}
-
-const clampDueDayToMonth = (year: number, monthIndex: number, dueDay: number): number =>
-  Math.max(1, Math.min(dueDay, new Date(year, monthIndex + 1, 0).getDate()))
 
 type ExerciseThumbButtonProps = {
   asset: ExerciseThumbAsset
@@ -477,7 +456,6 @@ export function StudentPortal() {
     syncMessage,
     hasTrainerWorkspace,
     doneSessions,
-    setSyncMessage,
     selectedDay,
     setSelectedDay,
     toggleSession,
@@ -716,7 +694,7 @@ export function StudentPortal() {
     })
   }
 
-  const [studentTab, setStudentTab] = useState<'inicio' | 'treino' | 'agenda' | 'financeiro' | 'historico' | 'progresso'>('inicio')
+  const [studentTab, setStudentTab] = useState<'inicio' | 'treino' | 'agenda' | 'historico' | 'progresso'>('inicio')
   const [selectedRoutineDay, setSelectedRoutineDay] = useState('')
   const sessionByDay = useMemo(
     () =>
@@ -756,34 +734,11 @@ export function StudentPortal() {
     : allWorkout
   const activeStudentVideoExerciseName =
     studentVideoExerciseName || activeRoutineWorkout[0]?.name || studentPortal?.workout[0]?.name || ''
-  const studentFinance = studentPortal?.finance
-    ? {
-        monthlyFee: studentPortal.finance.monthlyFee,
-        dueDay: studentPortal.finance.dueDay,
-        lastPaidMonth: studentPortal.finance.lastPaidMonth,
-        lastPaidAt: studentPortal.finance.lastPaidAt,
-        pixKey: studentPortal.finance.pixKey,
-      }
-    : readStudentFinanceSnapshot(studentPortal?.student.id ?? '')
-  const financeStatus = studentPortal?.finance?.paymentStatus ?? getFinanceStatus(studentFinance)
-  const financeStatusLabel = financeStatus === 'paid' ? 'Pago' : financeStatus === 'overdue' ? 'Atrasado' : 'Pendente'
-  const studentPixValue = studentFinance.pixKey.trim()
-  const financeNow = new Date()
-  const safeDueDay = clampDueDayToMonth(financeNow.getFullYear(), financeNow.getMonth(), studentFinance.dueDay)
-  const dueDate = new Date(financeNow.getFullYear(), financeNow.getMonth(), safeDueDay)
-  const todayStart = new Date(financeNow.getFullYear(), financeNow.getMonth(), financeNow.getDate())
-  const dayDiff = Math.round((dueDate.getTime() - todayStart.getTime()) / (1000 * 60 * 60 * 24))
-  const financeDueHint =
-    financeStatus === 'paid'
-      ? 'Mensalidade do mês em dia.'
-      : dayDiff === 0
-        ? 'Vence hoje.'
-        : dayDiff > 0
-          ? `Vence em ${dayDiff} dia${dayDiff > 1 ? 's' : ''}.`
-          : `Atrasado há ${Math.abs(dayDiff)} dia${Math.abs(dayDiff) > 1 ? 's' : ''}.`
+  const portalAccess = getPortalAccessState(studentPortal?.student.accessEndDate)
   const collapseKeys = activeRoutineWorkout.map(
     (exercise, exerciseIndex) => `${studentPortal?.student.id ?? ''}::${exercise.name}::${exerciseIndex}`,
   )
+
   const historyGroupedByDate = useMemo(() => {
     const grouped = new Map<string, { dateLabel: string; entries: SeriesHistoryEntry[] }>()
     seriesHistory.forEach((entry) => {
@@ -850,19 +805,6 @@ export function StudentPortal() {
 
   if (!studentPortal) return null
 
-  const handleCopyStudentPix = async () => {
-    if (!studentPixValue) {
-      setSyncMessage('Chave PIX ainda não foi informada pelo personal.')
-      return
-    }
-    try {
-      await navigator.clipboard.writeText(studentPixValue)
-      setSyncMessage('Chave PIX copiada.')
-    } catch {
-      setSyncMessage('Não foi possível copiar a chave PIX agora.')
-    }
-  }
-
   return (
     <div className="student-portal-shell">
       <header className="student-hero">
@@ -890,13 +832,26 @@ export function StudentPortal() {
           <p>
             Objetivo: {getStudentWorkoutType(studentPortal.student)} • Nível {getStudentTrainingLevel(studentPortal.student)}
           </p>
+          <p>{portalAccess.badge} • {portalAccess.hint}</p>
         </div>
       </header>
 
       <main className="student-portal-content">
         {syncMessage && <p className="status-line">{syncMessage}</p>}
 
-        {studentTab === 'inicio' && (
+        {portalAccess.blocked && (
+          <section className="panel">
+            <div className="panel-head">
+              <h3>Acesso bloqueado</h3>
+              <p>{portalAccess.hint}</p>
+            </div>
+            <p className="empty-line">
+              Seu treino foi bloqueado por validade expirada. Fale com seu personal para renovar seu acesso.
+            </p>
+          </section>
+        )}
+
+        {studentTab === 'inicio' && !portalAccess.blocked && (
           <>
             <section className="student-frequency-card">
               <div className="panel-head">
@@ -951,10 +906,6 @@ export function StudentPortal() {
                 <strong>Meu progresso</strong>
                 <span>Ver evolução do treino atual</span>
               </button>
-              <button type="button" className="shortcut-card" onClick={() => setStudentTab('financeiro')}>
-                <strong>Financeiro</strong>
-                <span>PIX e status do pagamento</span>
-              </button>
               {hasTrainerWorkspace && (
                 <button type="button" className="shortcut-card" onClick={() => setAppMode('trainer')}>
                   <strong>Painel do personal</strong>
@@ -965,7 +916,7 @@ export function StudentPortal() {
           </>
         )}
 
-      {studentTab === 'inicio' && (
+      {studentTab === 'inicio' && !portalAccess.blocked && (
           <section className="panel student-routines-panel">
             <div className="panel-head">
               <h3>Rotinas de treino</h3>
@@ -1027,7 +978,7 @@ export function StudentPortal() {
           </section>
         )}
 
-        {studentTab === 'treino' && (
+        {studentTab === 'treino' && !portalAccess.blocked && (
           <>
             <RestTimer />
 
@@ -1378,7 +1329,7 @@ export function StudentPortal() {
           </>
         )}
 
-        {studentTab === 'historico' && (
+        {studentTab === 'historico' && !portalAccess.blocked && (
           <section className="panel student-history-panel">
             <div className="panel-head">
               <h3>Histórico de execução</h3>
@@ -1416,7 +1367,7 @@ export function StudentPortal() {
           </section>
         )}
 
-        {studentTab === 'progresso' && (
+        {studentTab === 'progresso' && !portalAccess.blocked && (
           <section className="panel student-progress-panel">
             <div className="panel-head">
               <h3>Meu progresso</h3>
@@ -1469,52 +1420,7 @@ export function StudentPortal() {
           </section>
         )}
 
-        {studentTab === 'financeiro' && (
-          <section className="panel student-finance-panel">
-            <div className="panel-head">
-              <h3>Financeiro</h3>
-              <p>Acompanhe mensalidade e pagamento</p>
-            </div>
-
-            <div className="student-finance-grid">
-              <div className="detail-block">
-                <span>Status</span>
-                <strong className={`student-finance-status ${financeStatus}`}>{financeStatusLabel}</strong>
-              </div>
-              <div className="detail-block">
-                <span>Mensalidade</span>
-                <strong>
-                  {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
-                    studentFinance.monthlyFee,
-                  )}
-                </strong>
-              </div>
-              <div className="detail-block">
-                <span>Vencimento</span>
-                <strong>Dia {String(studentFinance.dueDay).padStart(2, '0')}</strong>
-              </div>
-              <div className="detail-block full">
-                <span>Chave PIX do personal</span>
-                <strong>{studentPixValue || 'Ainda nao informada pelo personal.'}</strong>
-              </div>
-            </div>
-            <p className={`student-finance-note ${financeStatus}`}>{financeDueHint}</p>
-
-            <div className="student-finance-actions">
-              <button
-                type="button"
-                className="btn-secondary"
-                onClick={() => {
-                  void handleCopyStudentPix()
-                }}
-              >
-                Copiar chave PIX
-              </button>
-            </div>
-          </section>
-        )}
-
-        {studentTab === 'agenda' && (
+        {studentTab === 'agenda' && !portalAccess.blocked && (
           <section className="panel">
             <div className="panel-head">
               <h3>Minha agenda</h3>
@@ -1578,6 +1484,7 @@ export function StudentPortal() {
               : 'student-bottom-item'
           }
           onClick={() => setStudentTab('treino')}
+          disabled={portalAccess.blocked}
         >
           Treino
         </button>
@@ -1585,15 +1492,9 @@ export function StudentPortal() {
           type="button"
           className={studentTab === 'agenda' ? 'student-bottom-item active' : 'student-bottom-item'}
           onClick={() => setStudentTab('agenda')}
+          disabled={portalAccess.blocked}
         >
           Agenda
-        </button>
-        <button
-          type="button"
-          className={studentTab === 'financeiro' ? 'student-bottom-item active' : 'student-bottom-item'}
-          onClick={() => setStudentTab('financeiro')}
-        >
-          Financeiro
         </button>
       </nav>
     </div>

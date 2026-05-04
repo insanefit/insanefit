@@ -53,7 +53,14 @@ export const buildStudentFormFromStudent = (student: Student) => ({
     findMatchingOption(student.objective, studentWorkoutTypeOptions) ??
     defaultStudentForm.workoutType,
   whatsapp: student.whatsapp?.trim() ?? '',
-  monthlyFee: String(student.monthlyFee ?? 0),
-  dueDay: String(student.dueDay ?? 10),
-  pixKey: student.pixKey?.trim() ?? '',
+  validityDays: String(
+    (() => {
+      if (!student.accessStartDate || !student.accessEndDate) return 30
+      const start = new Date(student.accessStartDate)
+      const end = new Date(student.accessEndDate)
+      if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return 30
+      const diff = Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24))
+      return Math.max(1, diff)
+    })(),
+  ),
 })

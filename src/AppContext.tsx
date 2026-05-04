@@ -81,7 +81,6 @@ import {
 import { clearRecoveryUrlArtifacts } from './context/helpers/recoveryUrl'
 import { renderDemoMedia } from './context/helpers/renderDemoMedia'
 import { billingQueryKeys, portalQueryKeys, useBillingProfileQuery, useStudentPortalQuery } from './queries/accountQueries'
-import { financeQueryKeys } from './queries/financeQueries'
 import { trainerQueryKeys, useTrainerDataQuery } from './queries/trainerQueries'
 import { setPlanManually } from './services/billingStore'
 import {
@@ -270,11 +269,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const invalidateBillingCache = () =>
     queryClient.invalidateQueries({
       queryKey: billingQueryKey,
-    })
-
-  const invalidateFinanceCache = () =>
-    queryClient.invalidateQueries({
-      queryKey: financeQueryKeys.all,
     })
 
   const invalidatePortalCache = () =>
@@ -604,7 +598,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setStudentEditForm,
     setStudentPortal,
     setAppMode,
-    invalidateFinanceCache,
   })
 
   const {

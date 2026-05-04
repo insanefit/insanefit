@@ -115,46 +115,18 @@ export function StudentsView() {
           placeholder="5591999999999"
         />
 
-        <div className="split-grid">
-          <div>
-            <label className="field-label" htmlFor="student-monthly-fee">Mensalidade (R$)</label>
-            <input
-              id="student-monthly-fee"
-              className="field-input"
-              type="number"
-              min={0}
-              step={10}
-              value={studentForm.monthlyFee}
-              onChange={(event) =>
-                setStudentForm((current) => ({ ...current, monthlyFee: event.target.value }))
-              }
-            />
-          </div>
-          <div>
-            <label className="field-label" htmlFor="student-due-day">Vencimento</label>
-            <input
-              id="student-due-day"
-              className="field-input"
-              type="number"
-              min={1}
-              max={31}
-              value={studentForm.dueDay}
-              onChange={(event) =>
-                setStudentForm((current) => ({ ...current, dueDay: event.target.value }))
-              }
-            />
-          </div>
-        </div>
-
-        <label className="field-label" htmlFor="student-pix-key">Chave PIX do personal</label>
+        <label className="field-label" htmlFor="student-validity-days">Validade do acesso (dias)</label>
         <input
-          id="student-pix-key"
+          id="student-validity-days"
           className="field-input"
-          value={studentForm.pixKey}
+          type="number"
+          min={1}
+          max={3650}
+          value={studentForm.validityDays}
           onChange={(event) =>
-            setStudentForm((current) => ({ ...current, pixKey: event.target.value }))
+            setStudentForm((current) => ({ ...current, validityDays: event.target.value }))
           }
-          placeholder="email, telefone, cpf ou chave aleatoria"
+          placeholder="30"
         />
 
         <button className="btn-secondary" type="submit">Salvar aluno</button>

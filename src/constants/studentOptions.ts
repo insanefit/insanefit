@@ -17,7 +17,5 @@ export const defaultStudentForm = {
   trainingLevel: 'Iniciante',
   workoutType: 'Hipertrofia',
   whatsapp: '',
-  monthlyFee: '0',
-  dueDay: '10',
-  pixKey: '',
+  validityDays: '30',
 }
