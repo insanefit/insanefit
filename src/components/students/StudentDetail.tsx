@@ -13,6 +13,7 @@ export function StudentDetail() {
     handleCopyStudentCode,
     handleShareStudentAccessLink,
     handleUnlinkStudentAccess,
+    handleDeleteStudent,
   } = useTrainerContext()
   const {
     selectedStudentHistoryPreview,
@@ -221,6 +222,13 @@ export function StudentDetail() {
                 disabled={!selectedStudent.studentUserId}
               >
                 Desvincular aluno
+              </button>
+              <button
+                type="button"
+                className="btn-ghost"
+                onClick={() => { void handleDeleteStudent() }}
+              >
+                Excluir aluno
               </button>
             </div>
           </div>

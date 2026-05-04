@@ -145,6 +145,7 @@ export type AppContextType = {
   handleCopyStudentCode: (shareCode?: string) => Promise<void>
   handleShareStudentAccessLink: (student: Student) => Promise<void>
   handleUnlinkStudentAccess: (studentId: string) => Promise<void>
+  handleDeleteStudent: () => Promise<void>
 
   // Workout builder
   workoutDraft: WorkoutDraftItem[]

@@ -89,6 +89,7 @@ const trainerKeys = [
   'handleCopyStudentCode',
   'handleShareStudentAccessLink',
   'handleUnlinkStudentAccess',
+  'handleDeleteStudent',
 ] as const satisfies ReadonlyArray<keyof AppContextType>
 
 const workoutKeys = [

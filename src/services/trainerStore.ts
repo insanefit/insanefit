@@ -771,6 +771,26 @@ export const updateStudentRemotely = async (student: Student, userId: string): P
   return false
 }
 
+export const deleteStudentRemotely = async (studentId: string, userId: string): Promise<boolean> => {
+  if (!supabase) {
+    persistStudentMeta(studentId, { whatsapp: '' }, userId)
+    return true
+  }
+
+  const { error } = await supabase
+    .from('students')
+    .delete()
+    .eq('id', studentId)
+    .eq('user_id', userId)
+
+  if (!error) {
+    persistStudentMeta(studentId, { whatsapp: '' }, userId)
+    return true
+  }
+
+  return false
+}
+
 export const loadStudentPortalData = async (userId: string): Promise<StudentPortalData | null> => {
   if (!supabase) {
     return null

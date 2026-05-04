@@ -1,8 +1,10 @@
 import type { Dispatch, FormEvent, SetStateAction } from 'react'
 import type { User } from '@supabase/supabase-js'
 import type { Exercise, Session, Student, StudentPortalData, TrainerData } from '../../types/trainer'
+import type { ProgressHistoryEntry } from '../../types/workout'
 import type { SessionFormState, StudentFormState } from '../appContextStore'
 import {
+  deleteStudentRemotely,
   saveSessionRemotely,
   updateSessionRemotely,
   unlinkStudentAccessRemotely,
@@ -39,6 +41,8 @@ type StudentHandlerDeps = {
   syncUpdateStudentRemote: (input: { student: Student; userId: string }) => Promise<boolean>
   setSyncMessage: Dispatch<SetStateAction<string>>
   setTrainerData: Dispatch<SetStateAction<TrainerData>>
+  setDoneSessions: Dispatch<SetStateAction<string[]>>
+  setProgressHistory: Dispatch<SetStateAction<Record<string, ProgressHistoryEntry[]>>>
   setSelectedStudentId: Dispatch<SetStateAction<string>>
   setEditingStudent: Dispatch<SetStateAction<boolean>>
   setSessionForm: Dispatch<SetStateAction<SessionFormState>>
@@ -70,6 +74,8 @@ export const createStudentHandlers = (deps: StudentHandlerDeps) => {
     syncUpdateStudentRemote,
     setSyncMessage,
     setTrainerData,
+    setDoneSessions,
+    setProgressHistory,
     setSelectedStudentId,
     setEditingStudent,
     setSessionForm,
@@ -234,6 +240,71 @@ export const createStudentHandlers = (deps: StudentHandlerDeps) => {
     if (!selectedStudent) return
     setStudentEditForm(buildStudentFormFromStudent(selectedStudent))
     setEditingStudent(true)
+  }
+
+  const handleDeleteStudent = async () => {
+    if (!selectedStudent) {
+      setSyncMessage('Selecione um aluno para excluir.')
+      return
+    }
+
+    const shouldDelete = window.confirm(
+      `Excluir o aluno ${selectedStudent.name}? Essa ação remove agenda e treinos desse aluno.`,
+    )
+    if (!shouldDelete) return
+
+    const targetStudentId = selectedStudent.id
+    const nextSelectedStudentId = students.find((student) => student.id !== targetStudentId)?.id ?? ''
+    const relatedSessionIds = sessions
+      .filter((session) => session.studentId === targetStudentId)
+      .map((session) => session.id)
+
+    if (hasSupabaseCredentials) {
+      if (!currentUser) {
+        setSyncMessage('Faca login para excluir aluno no Supabase.')
+        return
+      }
+      const deleted = await deleteStudentRemotely(targetStudentId, currentUser.id)
+      if (!deleted) {
+        setSyncMessage('Nao foi possivel excluir no Supabase agora.')
+        return
+      }
+    }
+
+    setTrainerData((current) => {
+      const nextStudents = current.students.filter((student) => student.id !== targetStudentId)
+      const nextSessions = current.sessions.filter((session) => session.studentId !== targetStudentId)
+      const nextWorkoutByStudent = { ...current.workoutByStudent }
+      delete nextWorkoutByStudent[targetStudentId]
+      return {
+        ...current,
+        students: nextStudents,
+        sessions: nextSessions,
+        workoutByStudent: nextWorkoutByStudent,
+      }
+    })
+
+    setDoneSessions((current) => current.filter((sessionId) => !relatedSessionIds.includes(sessionId)))
+    setProgressHistory((current) => {
+      const next = { ...current }
+      delete next[targetStudentId]
+      return next
+    })
+    setSelectedStudentId((current) => (current === targetStudentId ? nextSelectedStudentId : current))
+    setSessionForm((current) => ({
+      ...current,
+      studentId: current.studentId === targetStudentId ? nextSelectedStudentId : current.studentId,
+    }))
+    setStudentPortal((current) => (current?.student.id === targetStudentId ? null : current))
+    if (studentPortal?.student.id === targetStudentId) {
+      setAppMode('trainer')
+    }
+    setEditingStudent(false)
+    setSyncMessage(
+      hasSupabaseCredentials
+        ? 'Aluno excluido com sucesso no Supabase.'
+        : 'Aluno excluido no modo local.',
+    )
   }
 
   const handleCancelStudentEdit = () => {
@@ -524,5 +595,6 @@ export const createStudentHandlers = (deps: StudentHandlerDeps) => {
     handleCopyStudentCode,
     handleShareStudentAccessLink,
     handleUnlinkStudentAccess,
+    handleDeleteStudent,
   }
 }

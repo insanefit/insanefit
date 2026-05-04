@@ -570,6 +570,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     handleCopyStudentCode,
     handleShareStudentAccessLink,
     handleUnlinkStudentAccess,
+    handleDeleteStudent,
   } = createStudentHandlers({
     billingProfile,
     activePlanName: activePlan.name,
@@ -590,6 +591,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     syncUpdateStudentRemote: syncStudentUpdateMutation.mutateAsync,
     setSyncMessage,
     setTrainerData,
+    setDoneSessions,
+    setProgressHistory,
     setSelectedStudentId,
     setEditingStudent,
     setSessionForm,
@@ -760,6 +763,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     handleCopyStudentCode,
     handleShareStudentAccessLink,
     handleUnlinkStudentAccess,
+    handleDeleteStudent,
   } as const), [
     trainerData,
     students,
@@ -803,6 +807,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     handleCopyStudentCode,
     handleShareStudentAccessLink,
     handleUnlinkStudentAccess,
+    handleDeleteStudent,
   ])
 
   const workoutContextInput = useMemo(() => ({
