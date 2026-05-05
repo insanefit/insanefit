@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import type { FormEvent } from 'react'
 import { useMetaContext, useTrainerContext, useWorkoutContext } from '../../context/appContextStore'
 import { getExerciseVideoAttachment } from '../../utils/exerciseUtils'
 import { normalizeWorkoutDay, normalizeWorkoutRoutine } from '../../utils/workoutProtocol'
@@ -41,9 +42,12 @@ export function WorkoutView() {
     handleRemoveDraftExercise,
     handleUpdateDraftExercise,
     handleQuickAddExercise,
+    handleAddManualExercise,
     handleOpenExerciseDemo,
     quickAddExerciseName,
     setQuickAddExerciseName,
+    manualExerciseForm,
+    setManualExerciseForm,
     exerciseQuery,
     setExerciseQuery,
     groupFilter,
@@ -92,6 +96,7 @@ export function WorkoutView() {
   const [libraryTab, setLibraryTab] = useState<'app' | 'withGif' | 'inDraft'>('app')
   const [libraryPage, setLibraryPage] = useState(1)
   const [showAdvancedLibraryTools, setShowAdvancedLibraryTools] = useState(false)
+  const [showManualCreateForm, setShowManualCreateForm] = useState(false)
   const [showPlanningTools, setShowPlanningTools] = useState(false)
   const [activeDraftDayChoice, setActiveDraftDayChoice] = useState('')
   const [draftDayFilterChoice, setDraftDayFilterChoice] = useState<'Todos' | string>('Todos')
@@ -226,6 +231,19 @@ export function WorkoutView() {
     setDifficultyFilter('Todos')
     setSourceFilter('Todos')
     setLibraryTab('app')
+  }
+
+  const handleOpenManualCreate = () => {
+    setWorkoutBuilderStep('protocolo')
+    setShowManualCreateForm(true)
+  }
+
+  const handleSubmitManualCreate = (event: FormEvent<HTMLFormElement>) => {
+    const hasName = manualExerciseForm.name.trim().length > 0
+    handleAddManualExercise(event, activeDraftDay, activeDraftRoutine)
+    if (hasName) {
+      setShowManualCreateForm(false)
+    }
   }
 
   const handleEditExerciseVideo = (exercise: (typeof filteredExercises)[number]) => {
@@ -530,7 +548,7 @@ export function WorkoutView() {
                   <button
                     type="button"
                     className="btn-ghost"
-                    onClick={() => setWorkoutBuilderStep('protocolo')}
+                    onClick={handleOpenManualCreate}
                   >
                     + Criar manual
                   </button>
@@ -971,6 +989,13 @@ export function WorkoutView() {
                     <div className="draft-head-actions">
                       <button
                         type="button"
+                        className="btn-ghost"
+                        onClick={() => setShowManualCreateForm((current) => !current)}
+                      >
+                        {showManualCreateForm ? 'Fechar manual' : 'Criar manual'}
+                      </button>
+                      <button
+                        type="button"
                         className="btn-secondary"
                         onClick={() => setWorkoutBuilderStep('biblioteca')}
                       >
@@ -981,6 +1006,72 @@ export function WorkoutView() {
                   </div>
 
                   <div className="draft-list">
+                    {showManualCreateForm && (
+                      <form className="phase-card" onSubmit={handleSubmitManualCreate}>
+                        <p className="phase-title">Novo exercicio manual</p>
+                        <div className="phase-grid">
+                          <div>
+                            <label className="field-label" htmlFor="manual-exercise-name">Nome do exercicio</label>
+                            <input
+                              id="manual-exercise-name"
+                              className="field-input"
+                              value={manualExerciseForm.name}
+                              onChange={(event) =>
+                                setManualExerciseForm((current) => ({ ...current, name: event.target.value }))
+                              }
+                              placeholder="Ex: Remada unilateral na polia"
+                            />
+                          </div>
+                          <div>
+                            <label className="field-label" htmlFor="manual-exercise-group">Grupo muscular</label>
+                            <input
+                              id="manual-exercise-group"
+                              className="field-input"
+                              value={manualExerciseForm.muscleGroup}
+                              onChange={(event) =>
+                                setManualExerciseForm((current) => ({ ...current, muscleGroup: event.target.value }))
+                              }
+                            />
+                          </div>
+                          <div>
+                            <label className="field-label" htmlFor="manual-exercise-category">Categoria</label>
+                            <input
+                              id="manual-exercise-category"
+                              className="field-input"
+                              value={manualExerciseForm.category}
+                              onChange={(event) =>
+                                setManualExerciseForm((current) => ({ ...current, category: event.target.value }))
+                              }
+                            />
+                          </div>
+                          <div>
+                            <label className="field-label" htmlFor="manual-exercise-equipment">Equipamento</label>
+                            <input
+                              id="manual-exercise-equipment"
+                              className="field-input"
+                              value={manualExerciseForm.equipment}
+                              onChange={(event) =>
+                                setManualExerciseForm((current) => ({ ...current, equipment: event.target.value }))
+                              }
+                            />
+                          </div>
+                        </div>
+                        <p className="demo-query">
+                          Vai entrar no Treino {activeDraftRoutine} • Dia {activeDraftDay || 'Todos os dias'}.
+                        </p>
+                        <div className="video-attach-actions">
+                          <button type="submit" className="btn-primary">Adicionar no protocolo</button>
+                          <button
+                            type="button"
+                            className="btn-secondary"
+                            onClick={() => setShowManualCreateForm(false)}
+                          >
+                            Cancelar
+                          </button>
+                        </div>
+                      </form>
+                    )}
+
                     {workoutDraft.length === 0 && (
                       <p className="empty-line">
                         Nenhum exercicio no treino. Volte para Biblioteca e adicione alguns.
