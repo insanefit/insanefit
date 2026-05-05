@@ -226,13 +226,6 @@ export function StudentDetail() {
               >
                 Desvincular aluno
               </button>
-              <button
-                type="button"
-                className="btn-primary"
-                onClick={() => { void handleDeleteStudent() }}
-              >
-                Excluir aluno
-              </button>
             </div>
           </div>
           <div className="detail-block full">

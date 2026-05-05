@@ -2307,7 +2307,20 @@ select:focus-visible {
 .video-attach-actions {
   display: flex;
   gap: 0.35rem;
+  flex-wrap: wrap;
   justify-content: flex-end;
+}
+
+.manual-create-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.35rem;
+  justify-content: stretch;
+}
+
+.manual-create-actions .btn-primary,
+.manual-create-actions .btn-secondary {
+  width: 100%;
 }
 
 .video-batch-box {
@@ -2381,6 +2394,13 @@ select:focus-visible {
   align-items: flex-start;
 }
 
+.draft-item-head-actions {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
 .draft-item-head strong {
   font-size: 0.84rem;
 }
@@ -2390,6 +2410,11 @@ select:focus-visible {
   font-size: 0.72rem;
   color: var(--muted);
   margin-top: 0.15rem;
+}
+
+.draft-collapsed-hint {
+  font-size: 0.75rem;
+  color: #c8d2e0;
 }
 
 .draft-grid {
@@ -3304,6 +3329,35 @@ select:focus-visible {
   }
 }
 
+@media (max-width: 900px) {
+  .workspace-shell {
+    grid-template-rows: auto 1fr;
+  }
+
+  .topbar {
+    padding: 0.5rem 0.72rem;
+    gap: 0.48rem;
+  }
+
+  .topbar h2 {
+    font-size: 0.98rem;
+  }
+
+  .topbar-subtitle {
+    font-size: 0.72rem;
+  }
+
+  .coach-avatar {
+    width: 34px;
+    height: 34px;
+  }
+
+  .top-actions .chip.email,
+  .top-actions .chip:not(.accent) {
+    display: none;
+  }
+}
+
 @media (max-width: 760px) {
   input,
   select,
@@ -3579,6 +3633,10 @@ select:focus-visible {
   }
 
   .video-attach-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .manual-create-actions {
     grid-template-columns: 1fr;
   }
 

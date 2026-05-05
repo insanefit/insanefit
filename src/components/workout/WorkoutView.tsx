@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
 import { useMetaContext, useTrainerContext, useWorkoutContext } from '../../context/appContextStore'
 import { getExerciseVideoAttachment } from '../../utils/exerciseUtils'
@@ -98,6 +98,7 @@ export function WorkoutView() {
   const [showAdvancedLibraryTools, setShowAdvancedLibraryTools] = useState(false)
   const [showManualCreateForm, setShowManualCreateForm] = useState(false)
   const [showPlanningTools, setShowPlanningTools] = useState(false)
+  const [collapsedDraftExerciseIds, setCollapsedDraftExerciseIds] = useState<string[]>([])
   const [activeDraftDayChoice, setActiveDraftDayChoice] = useState('')
   const [draftDayFilterChoice, setDraftDayFilterChoice] = useState<'Todos' | string>('Todos')
   const [activeDraftRoutineChoice, setActiveDraftRoutineChoice] = useState('A')
@@ -174,6 +175,12 @@ export function WorkoutView() {
     [draftDayFilter, draftRoutineFilter, workoutDraft],
   )
 
+  useEffect(() => {
+    setCollapsedDraftExerciseIds((current) =>
+      current.filter((id) => workoutDraft.some((item) => item.id === id)),
+    )
+  }, [workoutDraft])
+
   const handleDuplicateRoutine = () => {
     const sourceRoutine = normalizeWorkoutRoutine(duplicateSourceRoutine)
     const targetRoutine = normalizeWorkoutRoutine(duplicateTargetRoutine)
@@ -245,6 +252,8 @@ export function WorkoutView() {
       setShowManualCreateForm(false)
     }
   }
+
+  const isExerciseCollapsed = (exerciseId: string) => collapsedDraftExerciseIds.includes(exerciseId)
 
   const handleEditExerciseVideo = (exercise: (typeof filteredExercises)[number]) => {
     const attachment = getExerciseVideoAttachment(exercise.name, exerciseVideoMap)
@@ -987,6 +996,27 @@ export function WorkoutView() {
                       <p>Protocolo limpo: adicione pela biblioteca e ajuste cada exercício conforme o planejamento.</p>
                     </div>
                     <div className="draft-head-actions">
+                      {filteredDraft.length > 0 && (
+                        <>
+                          <button
+                            type="button"
+                            className="btn-ghost"
+                            onClick={() => {
+                              setCollapsedDraftExerciseIds(filteredDraft.map((exercise) => exercise.id))
+                              setEditingDraftExerciseId(null)
+                            }}
+                          >
+                            Recolher todos
+                          </button>
+                          <button
+                            type="button"
+                            className="btn-ghost"
+                            onClick={() => setCollapsedDraftExerciseIds([])}
+                          >
+                            Expandir todos
+                          </button>
+                        </>
+                      )}
                       <button
                         type="button"
                         className="btn-ghost"
@@ -1059,7 +1089,7 @@ export function WorkoutView() {
                         <p className="demo-query">
                           Vai entrar no Treino {activeDraftRoutine} • Dia {activeDraftDay || 'Todos os dias'}.
                         </p>
-                        <div className="video-attach-actions">
+                        <div className="video-attach-actions manual-create-actions">
                           <button type="submit" className="btn-primary">Adicionar no protocolo</button>
                           <button
                             type="button"
@@ -1092,16 +1122,41 @@ export function WorkoutView() {
                               Treino {normalizeWorkoutRoutine(exercise.routine)} • Dia {normalizeWorkoutDay(exercise.day) || 'Todos'} • {exercise.muscleGroup} - {exercise.equipment}
                             </span>
                           </div>
-                          <button
-                            type="button"
-                            className="btn-ghost"
-                            onClick={() => handleRemoveDraftExercise(exercise.id)}
-                          >
-                            Remover
-                          </button>
+                          <div className="draft-item-head-actions">
+                            <button
+                              type="button"
+                              className="btn-secondary"
+                              onClick={() => {
+                                setCollapsedDraftExerciseIds((current) =>
+                                  isExerciseCollapsed(exercise.id)
+                                    ? current.filter((id) => id !== exercise.id)
+                                    : [...current, exercise.id],
+                                )
+                                if (!isExerciseCollapsed(exercise.id) && editingDraftExerciseId === exercise.id) {
+                                  setEditingDraftExerciseId(null)
+                                }
+                              }}
+                              aria-expanded={!isExerciseCollapsed(exercise.id)}
+                            >
+                              {isExerciseCollapsed(exercise.id) ? 'Expandir' : 'Recolher'}
+                            </button>
+                            <button
+                              type="button"
+                              className="btn-ghost"
+                              onClick={() => handleRemoveDraftExercise(exercise.id)}
+                            >
+                              Remover
+                            </button>
+                          </div>
                         </div>
 
-                        <div className="draft-item-summary">
+                        {isExerciseCollapsed(exercise.id) && (
+                          <p className="draft-collapsed-hint">
+                            Exercício recolhido. Toque em <strong>Expandir</strong> para editar protocolo e séries.
+                          </p>
+                        )}
+
+                        <div className="draft-item-summary" hidden={isExerciseCollapsed(exercise.id)}>
                           <span>Warm-up: {exercise.warmup}</span>
                           <span>Feeder: {exercise.feederSets}x{exercise.feederReps} @ RPE {exercise.feederRpe}</span>
                           <span>Work: {exercise.workSets}x{exercise.workReps} @ RPE {exercise.workRpe}</span>
@@ -1110,7 +1165,7 @@ export function WorkoutView() {
                           <span>{exercise.useMyoReps ? `Myo ativo (${exercise.myoRest})` : 'Myo desativado'}</span>
                         </div>
 
-                        <div className="draft-item-actions">
+                        <div className="draft-item-actions" hidden={isExerciseCollapsed(exercise.id)}>
                           <button
                             type="button"
                             className="btn-secondary"
@@ -1122,7 +1177,7 @@ export function WorkoutView() {
                           </button>
                         </div>
 
-                        {editingDraftExerciseId === exercise.id && (
+                        {!isExerciseCollapsed(exercise.id) && editingDraftExerciseId === exercise.id && (
                           <>
                             <div className="draft-grid">
                               <div>
