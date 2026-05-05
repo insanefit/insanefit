@@ -40,5 +40,9 @@ export const useStudentPortalQuery = ({ authReady, currentUser }: UserScopedQuer
     queryKey: portalQueryKeys.student(userId),
     queryFn: () => loadStudentPortalData(userId ?? ''),
     enabled,
+    // Keep student access in sync when the coach revokes/deletes a student.
+    refetchInterval: 10000,
+    refetchIntervalInBackground: true,
+    refetchOnWindowFocus: true,
   })
 }
