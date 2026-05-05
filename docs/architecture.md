@@ -26,6 +26,7 @@ flowchart TD
   - queries em `src/queries/*`
   - services em `src/services/*`
 - **Schemas/validacao**: `src/schemas/supabaseSchemas.ts` (Zod)
+- **Mobile/PWA gate**: `npm run pwa:check` + `docs/mobile-pwa-checklist.md`
 
 ## Fluxos principais
 

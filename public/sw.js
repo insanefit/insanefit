@@ -1,8 +1,9 @@
-const CACHE_NAME = 'insanefit-cache-v1'
+const CACHE_NAME = 'insanefit-cache-v2'
 const APP_SHELL = [
   '/',
   '/index.html',
   '/manifest.webmanifest',
+  '/if-icon-192.png',
   '/if-favicon.png',
   '/if-brand-icon.png',
   '/if-brand-full.png',
@@ -28,9 +29,17 @@ self.addEventListener('activate', (event) => {
   self.clients.claim()
 })
 
+self.addEventListener('message', (event) => {
+  if (event.data?.type === 'SKIP_WAITING') {
+    self.skipWaiting()
+  }
+})
+
 self.addEventListener('fetch', (event) => {
   const { request } = event
   if (request.method !== 'GET') return
+  const url = new URL(request.url)
+  if (url.origin !== self.location.origin) return
 
   if (request.mode === 'navigate') {
     event.respondWith(

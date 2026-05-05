@@ -43,6 +43,9 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
 
+      - name: PWA Check
+        run: npm run pwa:check
+
       - name: Tests
         run: npm run test:run
 

@@ -11,6 +11,7 @@
     "test": "vitest",
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage",
+    "pwa:check": "node ./scripts/check-pwa.mjs",
     "preview": "vite preview",
     "supabase:types": "node ./scripts/generate-supabase-types.mjs"
   },
