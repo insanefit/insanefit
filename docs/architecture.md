@@ -42,6 +42,11 @@ flowchart TD
    - Snapshot por aluno (mensalidade, vencimento, status)
    - Operacoes atomicas via RPC (`upsert_student_payment`)
 
+4. **Offline sync health**
+   - Fila de mutacoes em `src/services/offlineSyncQueue.ts`
+   - Telemetria local em `src/services/syncTelemetryStore.ts`
+   - Dashboard mostra pendencias, conflitos descartados e falhas consecutivas
+
 ## Banco e autorizacao
 
 - Script principal: `supabase/schema.sql`

@@ -39,6 +39,7 @@ import {
   flushSyncQueue,
   getSyncQueueCount,
 } from './offlineSyncQueue'
+import { getSyncTelemetrySnapshot } from './syncTelemetryStore'
 
 describe('offlineSyncQueue', () => {
   const userId = 'trainer-test'
@@ -81,6 +82,9 @@ describe('offlineSyncQueue', () => {
     expect(count1).toBe(1)
     expect(count2).toBe(1)
     expect(getSyncQueueCount(userId)).toBe(1)
+    const telemetry = getSyncTelemetrySnapshot(userId)
+    expect(telemetry.totalEnqueued).toBe(2)
+    expect(telemetry.lastQueueSize).toBe(1)
   })
 
   it('processa fila com sucesso e limpa pendencias', async () => {
@@ -105,6 +109,10 @@ describe('offlineSyncQueue', () => {
       remaining: 0,
     })
     expect(getSyncQueueCount(userId)).toBe(0)
+    const telemetry = getSyncTelemetrySnapshot(userId)
+    expect(telemetry.totalFlushRuns).toBe(1)
+    expect(telemetry.totalProcessed).toBe(1)
+    expect(telemetry.consecutiveFailedFlushes).toBe(0)
   })
 
   it('mantem na fila quando operacao falha', async () => {
@@ -130,6 +138,9 @@ describe('offlineSyncQueue', () => {
     expect(result.failed).toBe(1)
     expect(result.remaining).toBe(1)
     expect(getSyncQueueCount(userId)).toBe(1)
+    const telemetry = getSyncTelemetrySnapshot(userId)
+    expect(telemetry.totalFailed).toBe(1)
+    expect(telemetry.consecutiveFailedFlushes).toBe(1)
   })
 
   it('descarta update local antigo quando remoto ja e mais novo', async () => {
@@ -164,6 +175,8 @@ describe('offlineSyncQueue', () => {
       remaining: 0,
     })
     expect(getSyncQueueCount(userId)).toBe(0)
+    const telemetry = getSyncTelemetrySnapshot(userId)
+    expect(telemetry.totalSkipped).toBe(1)
+    expect(telemetry.lastConflictAt).not.toBeNull()
   })
 })
-

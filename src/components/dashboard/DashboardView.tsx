@@ -1,9 +1,12 @@
+import { useEffect, useState } from 'react'
 import {
   useAuthContext,
   useMetaContext,
   useTimerPortalContext,
   useTrainerContext,
 } from '../../context/appContextStore'
+import { getSyncQueueCount } from '../../services/offlineSyncQueue'
+import { getSyncTelemetrySnapshot, type SyncTelemetrySnapshot } from '../../services/syncTelemetryStore'
 
 export function DashboardView() {
   const { currentUser } = useAuthContext()
@@ -25,6 +28,24 @@ export function DashboardView() {
     getStudentWorkoutType,
     hasSupabaseCredentials,
   } = useMetaContext()
+  const [syncTelemetry, setSyncTelemetry] = useState<SyncTelemetrySnapshot | null>(null)
+  const [syncQueueSize, setSyncQueueSize] = useState(0)
+
+  useEffect(() => {
+    if (!currentUser || !hasSupabaseCredentials) return
+
+    const loadSyncHealth = () => {
+      setSyncTelemetry(getSyncTelemetrySnapshot(currentUser.id))
+      setSyncQueueSize(getSyncQueueCount(currentUser.id))
+    }
+
+    const timeoutId = window.setTimeout(loadSyncHealth, 0)
+    const intervalId = window.setInterval(loadSyncHealth, 10000)
+    return () => {
+      window.clearTimeout(timeoutId)
+      window.clearInterval(intervalId)
+    }
+  }, [currentUser, hasSupabaseCredentials])
 
   return (
     <>
@@ -44,6 +65,29 @@ export function DashboardView() {
       </section>
 
       {syncMessage && <p className="status-line">{syncMessage}</p>}
+
+      {hasSupabaseCredentials && currentUser && syncTelemetry && (
+        <section className="panel">
+          <div className="panel-head">
+            <h3>Saude da sincronizacao offline</h3>
+            <p>Monitoramento automatico da fila local.</p>
+          </div>
+          <div className="stat-grid">
+            <article className="stat-card">
+              <p>Fila pendente</p>
+              <strong>{syncQueueSize}</strong>
+            </article>
+            <article className="stat-card">
+              <p>Conflitos descartados</p>
+              <strong>{syncTelemetry.totalSkipped}</strong>
+            </article>
+            <article className="stat-card">
+              <p>Falhas consecutivas</p>
+              <strong>{syncTelemetry.consecutiveFailedFlushes}</strong>
+            </article>
+          </div>
+        </section>
+      )}
 
       <section className="panel dashboard-ops">
         <div className="panel-head">

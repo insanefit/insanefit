@@ -8,10 +8,11 @@ import {
   updateSessionRemotely,
   updateStudentRemotely,
 } from './trainerStore'
+import { recordSyncEnqueue, recordSyncFlushResult } from './syncTelemetryStore'
 
 const queueStorageKey = 'insanefit:sync_queue:v1'
 
-type SyncOperationType =
+export type SyncOperationType =
   | 'student.create'
   | 'student.update'
   | 'session.create'
@@ -104,7 +105,7 @@ type EnqueueInput =
       localUpdatedAt?: string
     }
 
-type FlushResult = {
+export type FlushResult = {
   processed: number
   failed: number
   skipped: number
@@ -305,6 +306,11 @@ export const enqueueSyncOperation = (input: EnqueueInput): number => {
   const queue = readQueue(input.userId)
   const nextQueue = dedupeQueue(queue, operation)
   writeQueue(input.userId, nextQueue)
+  recordSyncEnqueue({
+    userId: input.userId,
+    queueSize: nextQueue.length,
+    operationType: input.type,
+  })
   return nextQueue.length
 }
 
@@ -313,6 +319,7 @@ export const getSyncQueue = (userId: string): SyncQueueOperation[] => readQueue(
 export const getSyncQueueCount = (userId: string): number => readQueue(userId).length
 
 export const flushSyncQueue = async (userId: string): Promise<FlushResult> => {
+  const startedAt = Date.now()
   if (!userId.trim() || !hasSupabaseCredentials || !supabase) {
     return { processed: 0, failed: 0, skipped: 0, remaining: getSyncQueueCount(userId) }
   }
@@ -342,6 +349,11 @@ export const flushSyncQueue = async (userId: string): Promise<FlushResult> => {
   }
 
   writeQueue(userId, remaining)
-  return { processed, failed, skipped, remaining: remaining.length }
+  const result = { processed, failed, skipped, remaining: remaining.length }
+  recordSyncFlushResult({
+    userId,
+    ...result,
+    durationMs: Date.now() - startedAt,
+  })
+  return result
 }
-
