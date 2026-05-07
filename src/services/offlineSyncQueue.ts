@@ -318,6 +318,30 @@ export const getSyncQueue = (userId: string): SyncQueueOperation[] => readQueue(
 
 export const getSyncQueueCount = (userId: string): number => readQueue(userId).length
 
+export const dropSyncOperationsForStudent = (userId: string, studentId: string): number => {
+  const queue = readQueue(userId)
+  if (queue.length === 0) return 0
+
+  const nextQueue = queue.filter((operation) => {
+    if (operation.type === 'student.create' || operation.type === 'student.update') {
+      return operation.payload.student.id !== studentId
+    }
+    if (operation.type === 'workout.save') {
+      return operation.payload.studentId !== studentId
+    }
+    if (operation.type === 'session.create' || operation.type === 'session.update') {
+      return operation.payload.session.studentId !== studentId
+    }
+    return true
+  })
+
+  if (nextQueue.length !== queue.length) {
+    writeQueue(userId, nextQueue)
+  }
+
+  return nextQueue.length
+}
+
 export const flushSyncQueue = async (userId: string): Promise<FlushResult> => {
   const startedAt = Date.now()
   if (!userId.trim() || !hasSupabaseCredentials || !supabase) {

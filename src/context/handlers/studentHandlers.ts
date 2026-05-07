@@ -9,7 +9,7 @@ import {
   updateSessionRemotely,
   unlinkStudentAccessRemotely,
 } from '../../services/trainerStore'
-import { enqueueSyncOperation } from '../../services/offlineSyncQueue'
+import { dropSyncOperationsForStudent, enqueueSyncOperation } from '../../services/offlineSyncQueue'
 import { canCreateStudent } from '../../services/billingStore'
 import { sessionFormSchema, studentFormSchema } from '../../schemas/formSchemas'
 import type { BillingProfile } from '../../types/billing'
@@ -295,6 +295,11 @@ export const createStudentHandlers = (deps: StudentHandlerDeps) => {
       ...current,
       studentId: current.studentId === targetStudentId ? nextSelectedStudentId : current.studentId,
     }))
+
+    if (currentUser) {
+      dropSyncOperationsForStudent(currentUser.id, targetStudentId)
+    }
+
     setStudentPortal((current) => (current?.student.id === targetStudentId ? null : current))
     if (studentPortal?.student.id === targetStudentId) {
       setAppMode('trainer')
