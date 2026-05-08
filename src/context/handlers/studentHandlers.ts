@@ -302,7 +302,14 @@ export const createStudentHandlers = (deps: StudentHandlerDeps) => {
     // Limpeza preventiva para evitar ressurreição por storage antigo/local.
     purgeStudentFromLocalCaches(targetStudentId, currentUser?.id)
     purgeStudentProgressHistory(targetStudentId, currentUser?.id)
-    markStudentLocallyDeleted(targetStudentId, currentUser?.id)
+    markStudentLocallyDeleted(
+      {
+        id: targetStudentId,
+        shareCode: selectedStudent.shareCode,
+        name: selectedStudent.name,
+      },
+      currentUser?.id,
+    )
 
     if (currentUser) {
       dropSyncOperationsForStudent(currentUser.id, targetStudentId)

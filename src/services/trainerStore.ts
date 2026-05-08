@@ -53,6 +53,13 @@ type StudentMeta = {
   whatsapp?: string
 }
 
+type DeletedStudentFingerprint = {
+  id: string
+  shareCode?: string
+  name?: string
+  removedAt: string
+}
+
 const buildEmptyTrainerData = (): TrainerData => ({
   students: [],
   sessions: [],
@@ -82,11 +89,21 @@ const writeStudentMetaMap = (map: Record<string, StudentMeta>, userId?: string) 
   writeStorage(scopedKey(studentMetaStorageKey, userId), map)
 }
 
-const readDeletedStudentIds = (userId?: string): string[] =>
-  readStorage<string[]>(scopedKey(deletedStudentsStorageKey, userId)) ?? []
+const readDeletedStudentFingerprints = (userId?: string): DeletedStudentFingerprint[] =>
+  readStorage<DeletedStudentFingerprint[]>(scopedKey(deletedStudentsStorageKey, userId)) ?? []
 
-const writeDeletedStudentIds = (ids: string[], userId?: string) => {
-  writeStorage(scopedKey(deletedStudentsStorageKey, userId), Array.from(new Set(ids)))
+const writeDeletedStudentFingerprints = (items: DeletedStudentFingerprint[], userId?: string) => {
+  const map = new Map<string, DeletedStudentFingerprint>()
+  items.forEach((item) => {
+    if (!item.id?.trim()) return
+    map.set(item.id, {
+      id: item.id,
+      shareCode: item.shareCode?.trim() || undefined,
+      name: item.name?.trim() || undefined,
+      removedAt: item.removedAt || new Date().toISOString(),
+    })
+  })
+  writeStorage(scopedKey(deletedStudentsStorageKey, userId), Array.from(map.values()))
 }
 
 const removeStudentFromTrainerData = (data: TrainerData, studentId: string): TrainerData => {
@@ -126,26 +143,55 @@ export const purgeStudentFromLocalCaches = (studentId: string, userId?: string):
       writeStudentMetaMap(studentMetaMap, scopeUserId)
     }
 
-    const deletedIds = readDeletedStudentIds(scopeUserId)
-    if (!deletedIds.includes(studentId)) {
-      writeDeletedStudentIds([...deletedIds, studentId], scopeUserId)
+    const deletedItems = readDeletedStudentFingerprints(scopeUserId)
+    if (!deletedItems.some((item) => item.id === studentId)) {
+      writeDeletedStudentFingerprints(
+        [
+          ...deletedItems,
+          {
+            id: studentId,
+            removedAt: new Date().toISOString(),
+          },
+        ],
+        scopeUserId,
+      )
     }
   })
 }
 
-export const markStudentLocallyDeleted = (studentId: string, userId?: string) => {
-  const current = readDeletedStudentIds(userId)
-  if (current.includes(studentId)) return
-  writeDeletedStudentIds([...current, studentId], userId)
+export const markStudentLocallyDeleted = (
+  input: { id: string; shareCode?: string; name?: string },
+  userId?: string,
+) => {
+  const current = readDeletedStudentFingerprints(userId)
+  const existingIndex = current.findIndex((item) => item.id === input.id)
+  const payload: DeletedStudentFingerprint = {
+    id: input.id,
+    shareCode: input.shareCode?.trim() || undefined,
+    name: input.name?.trim() || undefined,
+    removedAt: new Date().toISOString(),
+  }
+
+  if (existingIndex >= 0) {
+    const next = [...current]
+    next[existingIndex] = {
+      ...next[existingIndex],
+      ...payload,
+    }
+    writeDeletedStudentFingerprints(next, userId)
+    return
+  }
+
+  writeDeletedStudentFingerprints([...current, payload], userId)
 }
 
 const reconcileDeletedStudentIds = (userId: string, remoteRows: StudentRow[]) => {
-  const deletedIds = readDeletedStudentIds(userId)
-  if (deletedIds.length === 0) return
+  const deletedItems = readDeletedStudentFingerprints(userId)
+  if (deletedItems.length === 0) return
   const remoteIds = new Set(remoteRows.map((row) => row.id))
-  const nextDeletedIds = deletedIds.filter((id) => remoteIds.has(id))
-  if (nextDeletedIds.length !== deletedIds.length) {
-    writeDeletedStudentIds(nextDeletedIds, userId)
+  const nextDeletedItems = deletedItems.filter((item) => remoteIds.has(item.id))
+  if (nextDeletedItems.length !== deletedItems.length) {
+    writeDeletedStudentFingerprints(nextDeletedItems, userId)
   }
 }
 
@@ -383,8 +429,27 @@ const loadFromSupabase = async (userId: string): Promise<TrainerData | null> => 
 
   const parsedStudentRows = parseRows(studentRowSchema, studentsResponse.data ?? [])
   reconcileDeletedStudentIds(userId, parsedStudentRows)
-  const deletedStudentIds = new Set(readDeletedStudentIds(userId))
-  const visibleStudentRows = parsedStudentRows.filter((row) => !deletedStudentIds.has(row.id))
+  const deletedItems = readDeletedStudentFingerprints(userId)
+  const deletedStudentIds = new Set(deletedItems.map((item) => item.id))
+  const deletedShareCodes = new Set(
+    deletedItems
+      .map((item) => item.shareCode?.trim())
+      .filter((code): code is string => Boolean(code)),
+  )
+  const deletedNames = new Set(
+    deletedItems
+      .map((item) => item.name?.trim().toLowerCase())
+      .filter((name): name is string => Boolean(name)),
+  )
+
+  const visibleStudentRows = parsedStudentRows.filter((row) => {
+    if (deletedStudentIds.has(row.id)) return false
+    const rowShareCode = row.share_code?.trim()
+    if (rowShareCode && deletedShareCodes.has(rowShareCode)) return false
+    const rowName = row.name?.trim().toLowerCase()
+    if (rowName && deletedNames.has(rowName)) return false
+    return true
+  })
   const visibleStudentIds = new Set(visibleStudentRows.map((row) => row.id))
   const visibleSessionsRows = parseRows(sessionRowSchema, sessionsResponse.data ?? []).filter((row) =>
     visibleStudentIds.has(row.student_id),
