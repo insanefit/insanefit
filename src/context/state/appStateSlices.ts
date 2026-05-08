@@ -1,6 +1,6 @@
 import type { User } from '@supabase/supabase-js'
 import { useState } from 'react'
-import { defaultTrainerData, weekDays } from '../../data/mockData'
+import { weekDays } from '../../data/mockData'
 import type { CoachProfile } from '../../types/coach'
 import { defaultCoachProfile } from '../../services/coachStore'
 import type { StudentPortalData, TrainerData } from '../../types/trainer'
@@ -11,6 +11,7 @@ import { defaultStudentForm } from '../../constants/studentOptions'
 import { hasRecoveryTypeInUrl, getInitialSignupCodeFromUrl, loadLocalExerciseVideoMap } from '../../utils/exerciseUtils'
 import { hasSupabaseCredentials } from '../../lib/supabase'
 import { defaultBillingProfile } from '../../services/billingStore'
+import { emptyTrainerData } from '../constants/emptyTrainerData'
 
 export const useAuthStateSlice = () => {
   const [authReady, setAuthReady] = useState(!hasSupabaseCredentials)
@@ -65,8 +66,8 @@ export const useAuthStateSlice = () => {
 }
 
 export const useTrainerStateSlice = () => {
-  const [trainerData, setTrainerData] = useState<TrainerData>(defaultTrainerData)
-  const [selectedStudentId, setSelectedStudentId] = useState(defaultTrainerData.students[0]?.id ?? '')
+  const [trainerData, setTrainerData] = useState<TrainerData>(emptyTrainerData)
+  const [selectedStudentId, setSelectedStudentId] = useState('')
   const [selectedDay, setSelectedDay] = useState(weekDays[0])
   const [doneSessions, setDoneSessions] = useState<string[]>([])
   const [progressHistory, setProgressHistory] = useState<Record<string, ProgressHistoryEntry[]>>({})
@@ -133,7 +134,7 @@ export const useStudentsCrudStateSlice = () => {
 
 export const useSessionStateSlice = () => {
   const [sessionForm, setSessionForm] = useState({
-    studentId: defaultTrainerData.students[0]?.id ?? '',
+    studentId: '',
     day: weekDays[0],
     time: '07:00',
     focus: '',
