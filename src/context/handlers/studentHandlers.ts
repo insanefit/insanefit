@@ -312,7 +312,10 @@ export const createStudentHandlers = (deps: StudentHandlerDeps) => {
     )
 
     if (currentUser) {
-      dropSyncOperationsForStudent(currentUser.id, targetStudentId)
+      dropSyncOperationsForStudent(currentUser.id, targetStudentId, {
+        shareCode: selectedStudent.shareCode,
+        name: selectedStudent.name,
+      })
     }
 
     setStudentPortal((current) => (current?.student.id === targetStudentId ? null : current))

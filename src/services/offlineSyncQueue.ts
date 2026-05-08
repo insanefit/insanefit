@@ -318,13 +318,30 @@ export const getSyncQueue = (userId: string): SyncQueueOperation[] => readQueue(
 
 export const getSyncQueueCount = (userId: string): number => readQueue(userId).length
 
-export const dropSyncOperationsForStudent = (userId: string, studentId: string): number => {
+const normalizeQueueText = (value: string | undefined): string =>
+  (value ?? '')
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+
+export const dropSyncOperationsForStudent = (
+  userId: string,
+  studentId: string,
+  options?: { shareCode?: string; name?: string },
+): number => {
   const queue = readQueue(userId)
   if (queue.length === 0) return 0
+  const normalizedShareCode = normalizeQueueText(options?.shareCode)
+  const normalizedName = normalizeQueueText(options?.name)
 
   const nextQueue = queue.filter((operation) => {
     if (operation.type === 'student.create' || operation.type === 'student.update') {
-      return operation.payload.student.id !== studentId
+      const student = operation.payload.student
+      if (student.id === studentId) return false
+      if (normalizedShareCode && normalizeQueueText(student.shareCode) === normalizedShareCode) return false
+      if (normalizedName && normalizeQueueText(student.name) === normalizedName) return false
+      return true
     }
     if (operation.type === 'workout.save') {
       return operation.payload.studentId !== studentId

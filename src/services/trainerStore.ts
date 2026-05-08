@@ -26,6 +26,7 @@ const legacyDataStorageKey = 'pulsecoach:data:v1'
 const legacyDoneStorageKey = 'pulsecoach:done:v1'
 const studentMetaStorageKey = 'insanefit:student_meta:v1'
 const deletedStudentsStorageKey = 'insanefit:deleted_students:v1'
+const deletedStudentRetentionMs = 90 * 24 * 60 * 60 * 1000
 
 type StudentRow = z.infer<typeof studentRowSchema>
 type SessionRow = z.infer<typeof sessionRowSchema>
@@ -89,8 +90,34 @@ const writeStudentMetaMap = (map: Record<string, StudentMeta>, userId?: string) 
   writeStorage(scopedKey(studentMetaStorageKey, userId), map)
 }
 
-const readDeletedStudentFingerprints = (userId?: string): DeletedStudentFingerprint[] =>
-  readStorage<DeletedStudentFingerprint[]>(scopedKey(deletedStudentsStorageKey, userId)) ?? []
+const readDeletedStudentFingerprints = (userId?: string): DeletedStudentFingerprint[] => {
+  const raw = readStorage<unknown[]>(scopedKey(deletedStudentsStorageKey, userId))
+  if (!Array.isArray(raw)) return []
+
+  const next: DeletedStudentFingerprint[] = []
+  raw.forEach((item) => {
+    if (typeof item === 'string') {
+      const id = item.trim()
+      if (!id) return
+      next.push({ id, removedAt: new Date().toISOString() })
+      return
+    }
+    if (!item || typeof item !== 'object') return
+    const candidate = item as Partial<DeletedStudentFingerprint>
+    const id = typeof candidate.id === 'string' ? candidate.id.trim() : ''
+    if (!id) return
+    next.push({
+      id,
+      shareCode: typeof candidate.shareCode === 'string' ? candidate.shareCode.trim() || undefined : undefined,
+      name: typeof candidate.name === 'string' ? candidate.name.trim() || undefined : undefined,
+      removedAt:
+        typeof candidate.removedAt === 'string' && candidate.removedAt.trim()
+          ? candidate.removedAt
+          : new Date().toISOString(),
+    })
+  })
+  return next
+}
 
 const writeDeletedStudentFingerprints = (items: DeletedStudentFingerprint[], userId?: string) => {
   const map = new Map<string, DeletedStudentFingerprint>()
@@ -185,13 +212,19 @@ export const markStudentLocallyDeleted = (
   writeDeletedStudentFingerprints([...current, payload], userId)
 }
 
-const reconcileDeletedStudentIds = (userId: string, remoteRows: StudentRow[]) => {
+const pruneExpiredDeletedStudentFingerprints = (userId: string) => {
   const deletedItems = readDeletedStudentFingerprints(userId)
   if (deletedItems.length === 0) return
-  const remoteIds = new Set(remoteRows.map((row) => row.id))
-  const nextDeletedItems = deletedItems.filter((item) => remoteIds.has(item.id))
-  if (nextDeletedItems.length !== deletedItems.length) {
-    writeDeletedStudentFingerprints(nextDeletedItems, userId)
+
+  const now = Date.now()
+  const next = deletedItems.filter((item) => {
+    const removedAt = Date.parse(item.removedAt)
+    if (!Number.isFinite(removedAt)) return true
+    return now - removedAt < deletedStudentRetentionMs
+  })
+
+  if (next.length !== deletedItems.length) {
+    writeDeletedStudentFingerprints(next, userId)
   }
 }
 
@@ -428,7 +461,7 @@ const loadFromSupabase = async (userId: string): Promise<TrainerData | null> => 
   const trainerPixKey = trainerPixProfile?.pix_key?.trim() ?? ''
 
   const parsedStudentRows = parseRows(studentRowSchema, studentsResponse.data ?? [])
-  reconcileDeletedStudentIds(userId, parsedStudentRows)
+  pruneExpiredDeletedStudentFingerprints(userId)
   const deletedItems = readDeletedStudentFingerprints(userId)
   const deletedStudentIds = new Set(deletedItems.map((item) => item.id))
   const deletedShareCodes = new Set(
@@ -436,18 +469,10 @@ const loadFromSupabase = async (userId: string): Promise<TrainerData | null> => 
       .map((item) => item.shareCode?.trim())
       .filter((code): code is string => Boolean(code)),
   )
-  const deletedNames = new Set(
-    deletedItems
-      .map((item) => item.name?.trim().toLowerCase())
-      .filter((name): name is string => Boolean(name)),
-  )
-
   const visibleStudentRows = parsedStudentRows.filter((row) => {
     if (deletedStudentIds.has(row.id)) return false
     const rowShareCode = row.share_code?.trim()
     if (rowShareCode && deletedShareCodes.has(rowShareCode)) return false
-    const rowName = row.name?.trim().toLowerCase()
-    if (rowName && deletedNames.has(rowName)) return false
     return true
   })
   const visibleStudentIds = new Set(visibleStudentRows.map((row) => row.id))
