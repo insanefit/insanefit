@@ -777,13 +777,34 @@ export const deleteStudentRemotely = async (studentId: string, userId: string): 
     return true
   }
 
-  const { error } = await supabase
+  // Remove dados dependentes antes do aluno para evitar bloqueios em esquemas sem cascade.
+  await supabase
+    .from('student_payments')
+    .delete()
+    .eq('student_id', studentId)
+    .eq('user_id', userId)
+
+  await supabase
+    .from('sessions')
+    .delete()
+    .eq('student_id', studentId)
+    .eq('user_id', userId)
+
+  await supabase
+    .from('exercises')
+    .delete()
+    .eq('student_id', studentId)
+    .eq('user_id', userId)
+
+  const { data, error } = await supabase
     .from('students')
     .delete()
     .eq('id', studentId)
     .eq('user_id', userId)
+    .select('id')
+    .maybeSingle()
 
-  if (!error) {
+  if (!error && data) {
     persistStudentMeta(studentId, { whatsapp: '' }, userId)
     return true
   }
