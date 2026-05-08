@@ -23,3 +23,21 @@ export const persistProgressHistory = (
   window.localStorage.setItem(storageKey(userId), JSON.stringify(history))
 }
 
+export const purgeStudentProgressHistory = (studentId: string, userId?: string): void => {
+  const scopes = Array.from(new Set([userId, undefined]))
+
+  scopes.forEach((scopeUserId) => {
+    const key = storageKey(scopeUserId)
+    try {
+      const serialized = window.localStorage.getItem(key)
+      if (!serialized) return
+      const current = JSON.parse(serialized) as Record<string, ProgressHistoryEntry[]>
+      if (!current[studentId]) return
+      const next = { ...current }
+      delete next[studentId]
+      window.localStorage.setItem(key, JSON.stringify(next))
+    } catch {
+      // ignore corrupted storage entries
+    }
+  })
+}

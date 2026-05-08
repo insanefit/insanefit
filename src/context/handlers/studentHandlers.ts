@@ -6,6 +6,7 @@ import type { SessionFormState, StudentFormState } from '../appContextStore'
 import {
   deleteStudentRemotely,
   markStudentLocallyDeleted,
+  purgeStudentFromLocalCaches,
   saveSessionRemotely,
   updateSessionRemotely,
   unlinkStudentAccessRemotely,
@@ -15,6 +16,7 @@ import { canCreateStudent } from '../../services/billingStore'
 import { sessionFormSchema, studentFormSchema } from '../../schemas/formSchemas'
 import type { BillingProfile } from '../../types/billing'
 import { getPlanDefinition } from '../../data/plans'
+import { purgeStudentProgressHistory } from '../../utils/progressUtils'
 
 type AppMode = 'trainer' | 'student'
 
@@ -297,6 +299,9 @@ export const createStudentHandlers = (deps: StudentHandlerDeps) => {
       studentId: current.studentId === targetStudentId ? nextSelectedStudentId : current.studentId,
     }))
 
+    // Limpeza preventiva para evitar ressurreição por storage antigo/local.
+    purgeStudentFromLocalCaches(targetStudentId, currentUser?.id)
+    purgeStudentProgressHistory(targetStudentId, currentUser?.id)
     markStudentLocallyDeleted(targetStudentId, currentUser?.id)
 
     if (currentUser) {

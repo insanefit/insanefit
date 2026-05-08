@@ -89,6 +89,50 @@ const writeDeletedStudentIds = (ids: string[], userId?: string) => {
   writeStorage(scopedKey(deletedStudentsStorageKey, userId), Array.from(new Set(ids)))
 }
 
+const removeStudentFromTrainerData = (data: TrainerData, studentId: string): TrainerData => {
+  const nextStudents = data.students.filter((student) => student.id !== studentId)
+  const nextSessions = data.sessions.filter((session) => session.studentId !== studentId)
+  const nextWorkoutByStudent = { ...data.workoutByStudent }
+  delete nextWorkoutByStudent[studentId]
+
+  return {
+    ...data,
+    students: nextStudents,
+    sessions: nextSessions,
+    workoutByStudent: nextWorkoutByStudent,
+  }
+}
+
+export const purgeStudentFromLocalCaches = (studentId: string, userId?: string): void => {
+  const scopes = Array.from(new Set([userId, undefined]))
+
+  scopes.forEach((scopeUserId) => {
+    const currentKey = scopedKey(dataStorageKey, scopeUserId)
+    const legacyKey = scopedKey(legacyDataStorageKey, scopeUserId)
+
+    const currentData = readStorage<TrainerData>(currentKey)
+    if (currentData) {
+      writeStorage(currentKey, removeStudentFromTrainerData(currentData, studentId))
+    }
+
+    const legacyData = readStorage<TrainerData>(legacyKey)
+    if (legacyData) {
+      writeStorage(legacyKey, removeStudentFromTrainerData(legacyData, studentId))
+    }
+
+    const studentMetaMap = readStudentMetaMap(scopeUserId)
+    if (studentMetaMap[studentId]) {
+      delete studentMetaMap[studentId]
+      writeStudentMetaMap(studentMetaMap, scopeUserId)
+    }
+
+    const deletedIds = readDeletedStudentIds(scopeUserId)
+    if (!deletedIds.includes(studentId)) {
+      writeDeletedStudentIds([...deletedIds, studentId], scopeUserId)
+    }
+  })
+}
+
 export const markStudentLocallyDeleted = (studentId: string, userId?: string) => {
   const current = readDeletedStudentIds(userId)
   if (current.includes(studentId)) return
