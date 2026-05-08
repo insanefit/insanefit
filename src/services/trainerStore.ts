@@ -1,5 +1,4 @@
 import type { AuthChangeEvent, Session as SupabaseSession, User } from '@supabase/supabase-js'
-import { defaultTrainerData } from '../data/mockData'
 import { hasSupabaseCredentials, supabase } from '../lib/supabase'
 import type {
   Exercise,
@@ -54,8 +53,11 @@ type StudentMeta = {
   whatsapp?: string
 }
 
-const cloneDefaultData = (): TrainerData =>
-  JSON.parse(JSON.stringify(defaultTrainerData)) as TrainerData
+const buildEmptyTrainerData = (): TrainerData => ({
+  students: [],
+  sessions: [],
+  workoutByStudent: {},
+})
 
 const scopedKey = (base: string, userId?: string): string =>
   userId ? `${base}:${userId}` : base
@@ -384,7 +386,9 @@ export const loadTrainerData = async (userId?: string): Promise<TrainerData> => 
     return localData
   }
 
-  const fallback = cloneDefaultData()
+  // Em produção, não semear aluno de exemplo quando o storage estiver vazio.
+  // Isso evita "aluno fantasma" reaparecer ao reiniciar navegador ou sessão anônima.
+  const fallback = buildEmptyTrainerData()
   writeStorage(scopedKey(dataStorageKey, userId), fallback)
   return fallback
 }
