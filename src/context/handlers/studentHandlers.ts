@@ -5,6 +5,7 @@ import type { ProgressHistoryEntry } from '../../types/workout'
 import type { SessionFormState, StudentFormState } from '../appContextStore'
 import {
   deleteStudentRemotely,
+  markStudentLocallyDeleted,
   saveSessionRemotely,
   updateSessionRemotely,
   unlinkStudentAccessRemotely,
@@ -295,6 +296,8 @@ export const createStudentHandlers = (deps: StudentHandlerDeps) => {
       ...current,
       studentId: current.studentId === targetStudentId ? nextSelectedStudentId : current.studentId,
     }))
+
+    markStudentLocallyDeleted(targetStudentId, currentUser?.id)
 
     if (currentUser) {
       dropSyncOperationsForStudent(currentUser.id, targetStudentId)

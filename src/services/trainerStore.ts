@@ -26,6 +26,7 @@ const doneStorageKey = 'insanefit:done:v1'
 const legacyDataStorageKey = 'pulsecoach:data:v1'
 const legacyDoneStorageKey = 'pulsecoach:done:v1'
 const studentMetaStorageKey = 'insanefit:student_meta:v1'
+const deletedStudentsStorageKey = 'insanefit:deleted_students:v1'
 
 type StudentRow = z.infer<typeof studentRowSchema>
 type SessionRow = z.infer<typeof sessionRowSchema>
@@ -77,6 +78,29 @@ const readStudentMetaMap = (userId?: string): Record<string, StudentMeta> =>
 
 const writeStudentMetaMap = (map: Record<string, StudentMeta>, userId?: string) => {
   writeStorage(scopedKey(studentMetaStorageKey, userId), map)
+}
+
+const readDeletedStudentIds = (userId?: string): string[] =>
+  readStorage<string[]>(scopedKey(deletedStudentsStorageKey, userId)) ?? []
+
+const writeDeletedStudentIds = (ids: string[], userId?: string) => {
+  writeStorage(scopedKey(deletedStudentsStorageKey, userId), Array.from(new Set(ids)))
+}
+
+export const markStudentLocallyDeleted = (studentId: string, userId?: string) => {
+  const current = readDeletedStudentIds(userId)
+  if (current.includes(studentId)) return
+  writeDeletedStudentIds([...current, studentId], userId)
+}
+
+const reconcileDeletedStudentIds = (userId: string, remoteRows: StudentRow[]) => {
+  const deletedIds = readDeletedStudentIds(userId)
+  if (deletedIds.length === 0) return
+  const remoteIds = new Set(remoteRows.map((row) => row.id))
+  const nextDeletedIds = deletedIds.filter((id) => remoteIds.has(id))
+  if (nextDeletedIds.length !== deletedIds.length) {
+    writeDeletedStudentIds(nextDeletedIds, userId)
+  }
 }
 
 const persistStudentMeta = (studentId: string, meta: StudentMeta, userId?: string) => {
@@ -311,10 +335,22 @@ const loadFromSupabase = async (userId: string): Promise<TrainerData | null> => 
   const trainerPixProfile = parseSingle(trainerProfilePixSchema, profileResponse.error ? null : profileResponse.data)
   const trainerPixKey = trainerPixProfile?.pix_key?.trim() ?? ''
 
+  const parsedStudentRows = parseRows(studentRowSchema, studentsResponse.data ?? [])
+  reconcileDeletedStudentIds(userId, parsedStudentRows)
+  const deletedStudentIds = new Set(readDeletedStudentIds(userId))
+  const visibleStudentRows = parsedStudentRows.filter((row) => !deletedStudentIds.has(row.id))
+  const visibleStudentIds = new Set(visibleStudentRows.map((row) => row.id))
+  const visibleSessionsRows = parseRows(sessionRowSchema, sessionsResponse.data ?? []).filter((row) =>
+    visibleStudentIds.has(row.student_id),
+  )
+  const visibleExercisesRows = parseRows(exerciseRowSchema, exercisesResponse.data ?? []).filter((row) =>
+    visibleStudentIds.has(row.student_id),
+  )
+
   return mapSupabaseData(
-    parseRows(studentRowSchema, studentsResponse.data ?? []),
-    parseRows(sessionRowSchema, sessionsResponse.data ?? []),
-    parseRows(exerciseRowSchema, exercisesResponse.data ?? []),
+    visibleStudentRows,
+    visibleSessionsRows,
+    visibleExercisesRows,
     readStudentMetaMap(userId),
     paymentByStudent,
     trainerPixKey,
