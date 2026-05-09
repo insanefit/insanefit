@@ -474,12 +474,23 @@ const mergePendingLocalStudents = (
   localData: TrainerData,
   queueInsights: QueueInsights,
 ): TrainerData => {
+  const recentFallbackWindowMs = 7 * 24 * 60 * 60 * 1000
+  const now = Date.now()
+  const isRecentLocalChange = (value?: string): boolean => {
+    if (!value) return false
+    const parsed = Date.parse(value)
+    if (!Number.isFinite(parsed)) return false
+    return now - parsed <= recentFallbackWindowMs
+  }
+
   const remoteById = new Map(remoteData.students.map((student) => [student.id, student]))
   const mergedStudents = [...remoteData.students]
 
   localData.students.forEach((localStudent) => {
     if (queueInsights.pendingDeleteIds.has(localStudent.id)) return
-    const shouldInsert = queueInsights.pendingCreateIds.has(localStudent.id) && !remoteById.has(localStudent.id)
+    const shouldInsert =
+      !remoteById.has(localStudent.id) &&
+      (queueInsights.pendingCreateIds.has(localStudent.id) || isRecentLocalChange(localStudent.updatedAt))
     const shouldPatch = queueInsights.pendingUpdateIds.has(localStudent.id) && remoteById.has(localStudent.id)
 
     if (shouldInsert) {
