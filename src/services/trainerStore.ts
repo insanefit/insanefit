@@ -631,7 +631,13 @@ export const loadTrainerData = async (userId?: string): Promise<TrainerData> => 
   if (hasSupabaseCredentials && userId) {
     const localData = readScopedStorage<TrainerData>(dataStorageKey, legacyDataStorageKey, userId)
     const queueInsights = readQueueInsights(userId)
-    const supabaseData = await loadFromSupabase(userId)
+    let supabaseData: TrainerData | null = null
+    try {
+      supabaseData = await loadFromSupabase(userId)
+    } catch {
+      supabaseData = null
+    }
+
     if (!supabaseData) {
       return localData ?? buildEmptyTrainerData()
     }
