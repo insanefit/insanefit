@@ -284,24 +284,30 @@ export function AppProvider({ children }: { children: ReactNode }) {
       ])
       return { savedStudent, exercisesSaved }
     },
-    onSuccess: () => {
-      void invalidateTrainerDataCache()
+    onSuccess: (result) => {
+      if (result.savedStudent && result.exercisesSaved) {
+        void invalidateTrainerDataCache()
+      }
     },
   })
 
   const syncStudentUpdateMutation = useMutation({
     mutationFn: async (input: { student: Parameters<typeof updateStudentRemotely>[0]; userId: string }) =>
       updateStudentRemotely(input.student, input.userId),
-    onSuccess: () => {
-      void invalidateTrainerDataCache()
+    onSuccess: (saved) => {
+      if (saved) {
+        void invalidateTrainerDataCache()
+      }
     },
   })
 
   const syncWorkoutSaveMutation = useMutation({
     mutationFn: async (input: { studentId: string; workout: Parameters<typeof saveStudentWorkoutAtomicallyRemotely>[1]; userId: string }) =>
       saveStudentWorkoutAtomicallyRemotely(input.studentId, input.workout, input.userId),
-    onSuccess: () => {
-      void invalidateTrainerDataCache()
+    onSuccess: (saved) => {
+      if (saved.ok) {
+        void invalidateTrainerDataCache()
+      }
     },
   })
 
