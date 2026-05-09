@@ -520,6 +520,10 @@ export const createWorkoutHandlers = (deps: WorkoutHandlerDeps) => {
     }
 
     const normalizedDraft = workoutDraft.filter((item) => item.name.trim().length > 0)
+    if (normalizedDraft.length === 0) {
+      setSyncMessage('Adicione ao menos 1 exercicio na ficha antes de finalizar o treino.')
+      return
+    }
     const workout: Exercise[] = draftToWorkout(normalizedDraft)
     const localUpdatedAt = new Date().toISOString()
 

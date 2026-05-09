@@ -408,7 +408,6 @@ export function WorkoutView() {
               type="button"
               className="btn-primary"
               onClick={handleSaveWorkoutDraft}
-              disabled={workoutDraft.length === 0}
             >
               Finalizar treino
             </button>
@@ -1372,7 +1371,7 @@ export function WorkoutView() {
                     ))}
                   </div>
 
-                  <button type="button" className="btn-primary" onClick={handleSaveWorkoutDraft} disabled={workoutDraft.length === 0}>
+                  <button type="button" className="btn-primary" onClick={handleSaveWorkoutDraft}>
                     Finalizar treino
                   </button>
                 </div>
