@@ -658,8 +658,23 @@ export const loadTrainerData = async (userId?: string): Promise<TrainerData> => 
       queueInsights.pendingUpdateIds.size > 0 ||
       queueInsights.pendingDeleteIds.size > 0
 
+    const hasRecentLocalOnlyStudents = (() => {
+      if (!localData || localData.students.length === 0) return false
+      const remoteIds = new Set(supabaseData.students.map((student) => student.id))
+      const now = Date.now()
+      const recentWindowMs = 7 * 24 * 60 * 60 * 1000
+      return localData.students.some((student) => {
+        if (remoteIds.has(student.id)) return false
+        const updatedAt = student.updatedAt
+        if (!updatedAt) return true
+        const parsed = Date.parse(updatedAt)
+        if (!Number.isFinite(parsed)) return true
+        return now - parsed <= recentWindowMs
+      })
+    })()
+
     const finalData =
-      hasPendingLocalStudents && localData
+      (hasPendingLocalStudents || hasRecentLocalOnlyStudents) && localData
         ? mergePendingLocalStudents(supabaseData, localData, queueInsights)
         : supabaseData
 
