@@ -830,6 +830,7 @@ export const saveStudentRemotely = async (student: Student, userId: string): Pro
   }
 
   const shareCode = student.shareCode?.trim() || createShareCode()
+  const updatedAt = new Date().toISOString()
   const normalizedInsertPayload: Record<string, unknown> = {
       id: student.id,
       user_id: userId,
@@ -847,22 +848,22 @@ export const saveStudentRemotely = async (student: Student, userId: string): Pro
       student_user_id: student.studentUserId ?? null,
       access_start_date: student.accessStartDate ?? null,
       access_end_date: student.accessEndDate ?? null,
+      updated_at: student.updatedAt ?? updatedAt,
     }
 
   const normalizedInsert = await (supabase
     .from('students') as unknown as {
-      insert: (payload: Record<string, unknown>) => {
-        select: (columns: string) => { single: () => Promise<{ data: unknown; error: unknown }> }
-      }
+      insert: (payload: Record<string, unknown>) => Promise<{ error: unknown }>
     })
     .insert(normalizedInsertPayload)
-    .select('*')
-    .single()
 
-  const parsedNormalizedStudent = parseSingle(studentRowSchema, normalizedInsert.data)
-  if (!normalizedInsert.error && parsedNormalizedStudent) {
+  if (!normalizedInsert.error) {
     persistStudentMeta(student.id, { whatsapp: student.whatsapp }, userId)
-    return mapStudentRow(parsedNormalizedStudent, { whatsapp: student.whatsapp })
+    return {
+      ...student,
+      shareCode,
+      updatedAt: student.updatedAt ?? updatedAt,
+    }
   }
 
   // Compatibilidade: schema antigo sem colunas normalizadas.
@@ -879,16 +880,17 @@ export const saveStudentRemotely = async (student: Student, userId: string): Pro
       plan: student.plan,
       student_user_id: student.studentUserId ?? null,
     })
-    .select('*')
-    .single()
 
-  const parsedLegacyStudent = parseSingle(studentRowSchema, legacyInsert.data)
-  if (legacyInsert.error || !parsedLegacyStudent) {
+  if (legacyInsert.error) {
     return null
   }
 
   persistStudentMeta(student.id, { whatsapp: student.whatsapp }, userId)
-  return mapStudentRow(parsedLegacyStudent, { whatsapp: student.whatsapp })
+  return {
+    ...student,
+    shareCode,
+    updatedAt: student.updatedAt ?? updatedAt,
+  }
 }
 
 export const updateStudentRemotely = async (student: Student, userId: string): Promise<boolean> => {
