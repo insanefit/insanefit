@@ -30,9 +30,16 @@ export function DashboardView() {
   } = useMetaContext()
   const [syncTelemetry, setSyncTelemetry] = useState<SyncTelemetrySnapshot | null>(null)
   const [syncQueueSize, setSyncQueueSize] = useState(0)
+  const [showSyncHealth, setShowSyncHealth] = useState(false)
 
   useEffect(() => {
     if (!currentUser || !hasSupabaseCredentials) return
+
+    const debugEnabled =
+      window.localStorage.getItem('insanefit:debug:sync-health') === '1' ||
+      window.location.search.includes('debugSync=1')
+    setShowSyncHealth(debugEnabled)
+    if (!debugEnabled) return
 
     const loadSyncHealth = () => {
       setSyncTelemetry(getSyncTelemetrySnapshot(currentUser.id))
@@ -66,7 +73,7 @@ export function DashboardView() {
 
       {syncMessage && <p className="status-line">{syncMessage}</p>}
 
-      {hasSupabaseCredentials && currentUser && syncTelemetry && (
+      {showSyncHealth && hasSupabaseCredentials && currentUser && syncTelemetry && (
         <section className="panel">
           <div className="panel-head">
             <h3>Saude da sincronizacao offline</h3>
