@@ -1036,12 +1036,20 @@ export const saveStudentRemotely = async (student: Student, userId: string): Pro
     .upsert(normalizedInsertPayload, { onConflict: 'id' })
 
   if (!normalizedInsert.error) {
-    persistStudentMeta(student.id, { whatsapp: student.whatsapp }, userId)
-    return {
-      ...student,
-      shareCode,
-      updatedAt: student.updatedAt ?? updatedAt,
+    const verification = await supabase
+      .from('students')
+      .select('*')
+      .eq('id', student.id)
+      .eq('user_id', userId)
+      .maybeSingle()
+
+    const verifiedRow = parseSingle(studentRowSchema, verification.error ? null : verification.data)
+    if (!verifiedRow) {
+      return null
     }
+
+    persistStudentMeta(student.id, { whatsapp: student.whatsapp }, userId)
+    return mapStudentRow(verifiedRow, readStudentMetaMap(userId))
   }
 
   // Compatibilidade: schema antigo sem colunas normalizadas.
@@ -1063,12 +1071,20 @@ export const saveStudentRemotely = async (student: Student, userId: string): Pro
     return null
   }
 
-  persistStudentMeta(student.id, { whatsapp: student.whatsapp }, userId)
-  return {
-    ...student,
-    shareCode,
-    updatedAt: student.updatedAt ?? updatedAt,
+  const legacyVerification = await supabase
+    .from('students')
+    .select('*')
+    .eq('id', student.id)
+    .eq('user_id', userId)
+    .maybeSingle()
+
+  const verifiedLegacyRow = parseSingle(studentRowSchema, legacyVerification.error ? null : legacyVerification.data)
+  if (!verifiedLegacyRow) {
+    return null
   }
+
+  persistStudentMeta(student.id, { whatsapp: student.whatsapp }, userId)
+  return mapStudentRow(verifiedLegacyRow, readStudentMetaMap(userId))
 }
 
 export const updateStudentRemotely = async (student: Student, userId: string): Promise<boolean> => {
