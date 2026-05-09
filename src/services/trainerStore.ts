@@ -564,7 +564,8 @@ const loadFromSupabase = async (userId: string): Promise<TrainerData | null> => 
       .maybeSingle(),
     ])
 
-  if (studentsResponse.error || sessionsResponse.error || exercisesResponse.error) {
+  // Se alunos falhar, não conseguimos montar o painel.
+  if (studentsResponse.error) {
     return null
   }
 
@@ -601,10 +602,18 @@ const loadFromSupabase = async (userId: string): Promise<TrainerData | null> => 
     return true
   })
   const visibleStudentIds = new Set(visibleStudentRows.map((row) => row.id))
-  const visibleSessionsRows = parseRows(sessionRowSchema, sessionsResponse.data ?? []).filter((row) =>
+  // Sessões e exercícios são tolerantes a erro para não "sumir com alunos"
+  // quando apenas uma tabela auxiliar estiver com falha temporária.
+  const visibleSessionsRows = parseRows(
+    sessionRowSchema,
+    sessionsResponse.error ? [] : (sessionsResponse.data ?? []),
+  ).filter((row) =>
     visibleStudentIds.has(row.student_id),
   )
-  const visibleExercisesRows = parseRows(exerciseRowSchema, exercisesResponse.data ?? []).filter((row) =>
+  const visibleExercisesRows = parseRows(
+    exerciseRowSchema,
+    exercisesResponse.error ? [] : (exercisesResponse.data ?? []),
+  ).filter((row) =>
     visibleStudentIds.has(row.student_id),
   )
 
@@ -987,9 +996,12 @@ export const saveStudentRemotely = async (student: Student, userId: string): Pro
 
   const normalizedInsert = await (supabase
     .from('students') as unknown as {
-      insert: (payload: Record<string, unknown>) => Promise<{ error: unknown }>
+      upsert: (
+        payload: Record<string, unknown>,
+        options: { onConflict: string },
+      ) => Promise<{ error: unknown }>
     })
-    .insert(normalizedInsertPayload)
+    .upsert(normalizedInsertPayload, { onConflict: 'id' })
 
   if (!normalizedInsert.error) {
     persistStudentMeta(student.id, { whatsapp: student.whatsapp }, userId)
@@ -1003,7 +1015,7 @@ export const saveStudentRemotely = async (student: Student, userId: string): Pro
   // Compatibilidade: schema antigo sem colunas normalizadas.
   const legacyInsert = await supabase
     .from('students')
-    .insert({
+    .upsert({
       id: student.id,
       user_id: userId,
       name: student.name,
@@ -1013,7 +1025,7 @@ export const saveStudentRemotely = async (student: Student, userId: string): Pro
       next_session: student.nextSession,
       plan: student.plan,
       student_user_id: student.studentUserId ?? null,
-    })
+    }, { onConflict: 'id' })
 
   if (legacyInsert.error) {
     return null

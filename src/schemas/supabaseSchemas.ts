@@ -73,8 +73,15 @@ export const trainerProfilePixSchema = z.object({
 })
 
 export const parseRows = <T>(schema: z.ZodType<T>, value: unknown): T[] => {
-  const parsed = z.array(schema).safeParse(value)
-  return parsed.success ? parsed.data : []
+  if (!Array.isArray(value)) return []
+  const parsedRows: T[] = []
+  value.forEach((item) => {
+    const parsed = schema.safeParse(item)
+    if (parsed.success) {
+      parsedRows.push(parsed.data)
+    }
+  })
+  return parsedRows
 }
 
 export const parseSingle = <T>(schema: z.ZodType<T>, value: unknown): T | null => {
