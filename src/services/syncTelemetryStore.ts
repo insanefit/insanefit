@@ -3,6 +3,7 @@ const telemetryStorageKey = 'insanefit:sync_telemetry:v1'
 type SyncOperationType =
   | 'student.create'
   | 'student.update'
+  | 'student.delete'
   | 'session.create'
   | 'session.update'
   | 'workout.save'

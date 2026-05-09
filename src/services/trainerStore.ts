@@ -951,6 +951,19 @@ export const deleteStudentRemotely = async (studentId: string, userId: string): 
     return true
   }
 
+  const existing = await supabase
+    .from('students')
+    .select('id')
+    .eq('id', studentId)
+    .eq('user_id', userId)
+    .maybeSingle()
+
+  if (!existing.error && !existing.data) {
+    // Já não existe no banco, tratamos como sucesso idempotente.
+    persistStudentMeta(studentId, { whatsapp: '' }, userId)
+    return true
+  }
+
   // Remove dados dependentes antes do aluno para evitar bloqueios em esquemas sem cascade.
   await supabase
     .from('student_payments')
@@ -979,6 +992,16 @@ export const deleteStudentRemotely = async (studentId: string, userId: string): 
     .maybeSingle()
 
   if (!error && data) {
+    const verify = await supabase
+      .from('students')
+      .select('id')
+      .eq('id', studentId)
+      .eq('user_id', userId)
+      .maybeSingle()
+
+    if (!verify.error && verify.data) {
+      return false
+    }
     persistStudentMeta(studentId, { whatsapp: '' }, userId)
     return true
   }

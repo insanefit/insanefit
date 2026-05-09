@@ -1,6 +1,7 @@
 import type { Exercise, Session, Student } from '../types/trainer'
 import { hasSupabaseCredentials, supabase } from '../lib/supabase'
 import {
+  deleteStudentRemotely,
   saveExercisesRemotely,
   saveSessionRemotely,
   saveStudentRemotely,
@@ -15,6 +16,7 @@ const queueStorageKey = 'insanefit:sync_queue:v1'
 export type SyncOperationType =
   | 'student.create'
   | 'student.update'
+  | 'student.delete'
   | 'session.create'
   | 'session.update'
   | 'workout.save'
@@ -39,6 +41,15 @@ type StudentUpdateOperation = BaseSyncOperation & {
   type: 'student.update'
   payload: {
     student: Student
+  }
+}
+
+type StudentDeleteOperation = BaseSyncOperation & {
+  type: 'student.delete'
+  payload: {
+    studentId: string
+    shareCode?: string
+    name?: string
   }
 }
 
@@ -67,6 +78,7 @@ type WorkoutSaveOperation = BaseSyncOperation & {
 export type SyncQueueOperation =
   | StudentCreateOperation
   | StudentUpdateOperation
+  | StudentDeleteOperation
   | SessionCreateOperation
   | SessionUpdateOperation
   | WorkoutSaveOperation
@@ -83,6 +95,14 @@ type EnqueueInput =
       type: 'student.update'
       userId: string
       student: Student
+      localUpdatedAt?: string
+    }
+  | {
+      type: 'student.delete'
+      userId: string
+      studentId: string
+      shareCode?: string
+      name?: string
       localUpdatedAt?: string
     }
   | {
@@ -142,6 +162,8 @@ const getOperationEntityKey = (operation: SyncQueueOperation): string => {
     case 'student.create':
     case 'student.update':
       return operation.payload.student.id
+    case 'student.delete':
+      return operation.payload.studentId
     case 'session.create':
     case 'session.update':
       return operation.payload.session.id
@@ -182,6 +204,19 @@ const buildQueueOperation = (input: EnqueueInput): SyncQueueOperation => {
         localUpdatedAt,
         queuedAt,
         payload: { student: input.student },
+      }
+    case 'student.delete':
+      return {
+        id,
+        type: input.type,
+        userId: input.userId,
+        localUpdatedAt,
+        queuedAt,
+        payload: {
+          studentId: input.studentId,
+          shareCode: input.shareCode?.trim() || undefined,
+          name: input.name?.trim() || undefined,
+        },
       }
     case 'session.create':
       return {
@@ -268,6 +303,10 @@ const processOperation = async (operation: SyncQueueOperation): Promise<'process
       const saved = await updateStudentRemotely(operation.payload.student, operation.userId)
       return saved ? 'processed' : 'failed'
     }
+    case 'student.delete': {
+      const saved = await deleteStudentRemotely(operation.payload.studentId, operation.userId)
+      return saved ? 'processed' : 'failed'
+    }
     case 'session.create': {
       const saved = await saveSessionRemotely(operation.payload.session, operation.userId)
       return saved ? 'processed' : 'failed'
@@ -341,6 +380,19 @@ export const dropSyncOperationsForStudent = (
       if (student.id === studentId) return false
       if (normalizedShareCode && normalizeQueueText(student.shareCode) === normalizedShareCode) return false
       if (normalizedName && normalizeQueueText(student.name) === normalizedName) return false
+      return true
+    }
+    if (operation.type === 'student.delete') {
+      if (operation.payload.studentId === studentId) return false
+      if (
+        normalizedShareCode &&
+        normalizeQueueText(operation.payload.shareCode) === normalizedShareCode
+      ) {
+        return false
+      }
+      if (normalizedName && normalizeQueueText(operation.payload.name) === normalizedName) {
+        return false
+      }
       return true
     }
     if (operation.type === 'workout.save') {

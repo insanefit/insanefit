@@ -262,15 +262,25 @@ export const createStudentHandlers = (deps: StudentHandlerDeps) => {
       .filter((session) => session.studentId === targetStudentId)
       .map((session) => session.id)
 
+    let cloudDeleted = false
+    let queuedDeleteCount = 0
+
     if (hasSupabaseCredentials) {
       if (!currentUser) {
         setSyncMessage('Faca login para excluir aluno no Supabase.')
         return
       }
       const deleted = await deleteStudentRemotely(targetStudentId, currentUser.id)
-      if (!deleted) {
-        setSyncMessage('Nao foi possivel excluir no Supabase agora.')
-        return
+      if (deleted) {
+        cloudDeleted = true
+      } else {
+        queuedDeleteCount = enqueueSyncOperation({
+          type: 'student.delete',
+          userId: currentUser.id,
+          studentId: targetStudentId,
+          shareCode: selectedStudent.shareCode,
+          name: selectedStudent.name,
+        })
       }
     }
 
@@ -323,11 +333,15 @@ export const createStudentHandlers = (deps: StudentHandlerDeps) => {
       setAppMode('trainer')
     }
     setEditingStudent(false)
-    setSyncMessage(
-      hasSupabaseCredentials
-        ? 'Aluno excluido com sucesso no Supabase.'
-        : 'Aluno excluido no modo local.',
-    )
+    if (hasSupabaseCredentials) {
+      setSyncMessage(
+        cloudDeleted
+          ? 'Aluno excluido com sucesso no Supabase.'
+          : `Aluno removido localmente. Exclusao enviada para fila offline (${queuedDeleteCount} pendente).`,
+      )
+    } else {
+      setSyncMessage('Aluno removido no modo local (sem sincronizacao na nuvem).')
+    }
   }
 
   const handleCancelStudentEdit = () => {
