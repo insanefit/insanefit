@@ -90,6 +90,7 @@ type QueueInsights = {
   pendingCreateIds: Set<string>
   pendingUpdateIds: Set<string>
   pendingDeleteIds: Set<string>
+  pendingWorkoutSaveIds: Set<string>
   pendingStudentsById: Map<string, QueueStudentSnapshot>
 }
 
@@ -98,6 +99,7 @@ const readQueueInsights = (userId: string): QueueInsights => {
     pendingCreateIds: new Set(),
     pendingUpdateIds: new Set(),
     pendingDeleteIds: new Set(),
+    pendingWorkoutSaveIds: new Set(),
     pendingStudentsById: new Map(),
   }
 
@@ -129,6 +131,14 @@ const readQueueInsights = (userId: string): QueueInsights => {
           name: student.name.trim(),
           shareCode: typeof student.shareCode === 'string' ? student.shareCode.trim() || undefined : undefined,
         })
+      }
+      return
+    }
+
+    if (candidate.type === 'workout.save') {
+      const payloadStudentId = candidate.payload?.studentId
+      if (typeof payloadStudentId === 'string' && payloadStudentId.trim()) {
+        empty.pendingWorkoutSaveIds.add(payloadStudentId.trim())
       }
       return
     }
@@ -511,6 +521,14 @@ const mergePendingLocalStudents = (
 
   const workoutByStudent: WorkoutByStudent = {}
   visibleIds.forEach((studentId) => {
+    if (queueInsights.pendingWorkoutSaveIds.has(studentId)) {
+      const localWorkout = localData.workoutByStudent[studentId]
+      if (localWorkout && localWorkout.length > 0) {
+        workoutByStudent[studentId] = localWorkout
+        return
+      }
+    }
+
     const remoteWorkout = remoteData.workoutByStudent[studentId]
     if (remoteWorkout && remoteWorkout.length > 0) {
       workoutByStudent[studentId] = remoteWorkout
@@ -645,7 +663,8 @@ export const loadTrainerData = async (userId?: string): Promise<TrainerData> => 
     const hasPendingLocalStudents =
       queueInsights.pendingCreateIds.size > 0 ||
       queueInsights.pendingUpdateIds.size > 0 ||
-      queueInsights.pendingDeleteIds.size > 0
+      queueInsights.pendingDeleteIds.size > 0 ||
+      queueInsights.pendingWorkoutSaveIds.size > 0
 
     const finalData =
       (hasPendingLocalStudents || localData) && localData
