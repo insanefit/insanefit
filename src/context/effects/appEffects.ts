@@ -106,6 +106,7 @@ export const useAuthBootstrapEffect = ({
 type DataLoadDeps = {
   authReady: boolean
   currentUser: User | null
+  trainerDataCurrent: TrainerData
   trainerDataSnapshot: TrainerData | null
   trainerDataReady: boolean
   billingProfileSnapshot: BillingProfile | null
@@ -131,6 +132,7 @@ type DataLoadDeps = {
 export const useDataLoadEffect = ({
   authReady,
   currentUser,
+  trainerDataCurrent,
   trainerDataSnapshot,
   trainerDataReady,
   billingProfileSnapshot,
@@ -192,7 +194,14 @@ export const useDataLoadEffect = ({
 
       if (!isMounted) return
 
-      const data = trainerDataSnapshot ?? emptyTrainerData
+      const snapshotData = trainerDataSnapshot ?? emptyTrainerData
+      const shouldPreserveLocalTrainerData =
+        hasSupabaseCredentials &&
+        Boolean(currentUser) &&
+        trainerDataCurrent.students.length > 0 &&
+        snapshotData.students.length === 0
+
+      const data = shouldPreserveLocalTrainerData ? trainerDataCurrent : snapshotData
 
       setTrainerData(data)
       setBillingProfile(billingProfileSnapshot ?? defaultBillingProfile)
@@ -245,6 +254,7 @@ export const useDataLoadEffect = ({
   }, [
     authReady,
     currentUser,
+    trainerDataCurrent,
     trainerDataSnapshot,
     trainerDataReady,
     billingProfileSnapshot,

@@ -344,6 +344,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   useDataLoadEffect({
     authReady,
     currentUser,
+    trainerDataCurrent: trainerData,
     trainerDataSnapshot: trainerDataQuery.data ?? null,
     trainerDataReady: trainerDataQuery.isFetched,
     billingProfileSnapshot: billingProfileQuery.data ?? null,
