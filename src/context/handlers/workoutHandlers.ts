@@ -546,12 +546,26 @@ export const createWorkoutHandlers = (deps: WorkoutHandlerDeps) => {
       return
     }
 
-    const syncResult = await syncSaveWorkoutRemote({
-      studentId: selectedStudentId,
-      workout,
-      userId: currentUser.id,
-    })
-    if (!syncResult.ok) {
+    try {
+      const syncResult = await syncSaveWorkoutRemote({
+        studentId: selectedStudentId,
+        workout,
+        userId: currentUser.id,
+      })
+      if (!syncResult.ok) {
+        const pending = enqueueSyncOperation({
+          type: 'workout.save',
+          userId: currentUser.id,
+          studentId: selectedStudentId,
+          workout,
+          localUpdatedAt,
+        })
+        setSyncMessage(`${syncResult.message} ${pending} sincronizacao(oes) pendente(s).`)
+        return
+      }
+      setSyncMessage(syncResult.message)
+      return
+    } catch (error) {
       const pending = enqueueSyncOperation({
         type: 'workout.save',
         userId: currentUser.id,
@@ -559,12 +573,10 @@ export const createWorkoutHandlers = (deps: WorkoutHandlerDeps) => {
         workout,
         localUpdatedAt,
       })
-      setSyncMessage(`${syncResult.message} ${pending} sincronizacao(oes) pendente(s).`)
+      const message = error instanceof Error ? error.message : 'erro inesperado na sincronizacao'
+      setSyncMessage(`Falha ao sincronizar treino (${message}). ${pending} sincronizacao(oes) pendente(s).`)
       return
     }
-    setSyncMessage(
-      syncResult.message,
-    )
   }
 
   const handleAddManualExercise = (event: FormEvent<HTMLFormElement>, day = '', routine = 'A') => {

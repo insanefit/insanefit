@@ -23,6 +23,7 @@ export function WorkoutView() {
   const {
     students, sessions, selectedStudent, selectedStudentId, setSelectedStudentId,
     setEditingStudent,
+    syncMessage,
     setSyncMessage,
   } = useTrainerContext()
   const {
@@ -372,6 +373,8 @@ export function WorkoutView() {
       {!selectedStudent && (
         <p className="empty-line">Cadastre e selecione um aluno para montar o treino.</p>
       )}
+
+      {syncMessage && <p className="status-line">{syncMessage}</p>}
 
       {selectedStudent && !workoutBuilderOpen && (
         <p className="empty-line">
