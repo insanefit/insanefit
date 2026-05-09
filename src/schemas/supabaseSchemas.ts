@@ -13,8 +13,9 @@ export const studentRowSchema = z.object({
   training_level: z.string().nullable().optional(),
   workout_type: z.string().nullable().optional(),
   whatsapp: z.string().nullable().optional(),
-  share_code: z.string().nullable(),
-  student_user_id: z.string().nullable(),
+  // Compatibilidade com bancos antigos que ainda não possuem essas colunas.
+  share_code: z.string().nullable().optional(),
+  student_user_id: z.string().nullable().optional(),
   access_start_date: z.string().nullable().optional(),
   access_end_date: z.string().nullable().optional(),
   updated_at: z.string().nullable().optional(),
