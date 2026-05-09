@@ -198,11 +198,27 @@ export const createStudentHandlers = (deps: StudentHandlerDeps) => {
       return
     }
 
-    const { savedStudent, exercisesSaved } = await syncCreateStudentRemote({
-      student: newStudent,
-      starterExercises,
-      userId: currentUser.id,
-    })
+    let savedStudent: Student | null = null
+    let exercisesSaved = false
+    try {
+      const syncResult = await syncCreateStudentRemote({
+        student: newStudent,
+        starterExercises,
+        userId: currentUser.id,
+      })
+      savedStudent = syncResult.savedStudent
+      exercisesSaved = syncResult.exercisesSaved
+    } catch {
+      const pending = enqueueSyncOperation({
+        type: 'student.create',
+        userId: currentUser.id,
+        student: newStudent,
+        starterExercises,
+        localUpdatedAt: newStudent.updatedAt,
+      })
+      setSyncMessage(`Aluno salvo localmente. Falha na nuvem, ${pending} sincronizacao(oes) pendente(s).`)
+      return
+    }
 
     if (savedStudent) {
       setTrainerData((current) => ({
