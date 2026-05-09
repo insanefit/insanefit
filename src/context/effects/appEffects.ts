@@ -311,10 +311,10 @@ export const usePersistenceEffects = ({
 
   useEffect(() => {
     if (!authReady) return
-    if (!hasSupabaseCredentials) {
-      persistLocalTrainerData(trainerData)
-    }
-  }, [authReady, trainerData])
+    if (hasSupabaseCredentials && !currentUser) return
+    const userId = hasSupabaseCredentials ? currentUser?.id : undefined
+    persistLocalTrainerData(trainerData, userId)
+  }, [authReady, currentUser, trainerData])
 
   useEffect(() => {
     if (!authReady) return

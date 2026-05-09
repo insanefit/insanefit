@@ -26,6 +26,7 @@ const legacyDataStorageKey = 'pulsecoach:data:v1'
 const legacyDoneStorageKey = 'pulsecoach:done:v1'
 const studentMetaStorageKey = 'insanefit:student_meta:v1'
 const deletedStudentsStorageKey = 'insanefit:deleted_students:v1'
+const syncQueueStorageKey = 'insanefit:sync_queue:v1'
 const deletedStudentRetentionMs = 90 * 24 * 60 * 60 * 1000
 
 type StudentRow = z.infer<typeof studentRowSchema>
@@ -77,6 +78,70 @@ const readStorage = <T>(key: string): T | null => {
   } catch {
     return null
   }
+}
+
+type QueueStudentSnapshot = {
+  id: string
+  name: string
+  shareCode?: string
+}
+
+type QueueInsights = {
+  pendingCreateIds: Set<string>
+  pendingUpdateIds: Set<string>
+  pendingDeleteIds: Set<string>
+  pendingStudentsById: Map<string, QueueStudentSnapshot>
+}
+
+const readQueueInsights = (userId: string): QueueInsights => {
+  const empty: QueueInsights = {
+    pendingCreateIds: new Set(),
+    pendingUpdateIds: new Set(),
+    pendingDeleteIds: new Set(),
+    pendingStudentsById: new Map(),
+  }
+
+  const queue = readStorage<unknown[]>(`${syncQueueStorageKey}:${userId}`)
+  if (!Array.isArray(queue) || queue.length === 0) return empty
+
+  queue.forEach((operation) => {
+    if (!operation || typeof operation !== 'object') return
+    const candidate = operation as {
+      type?: string
+      payload?: {
+        student?: Partial<Student>
+        studentId?: string
+        shareCode?: string
+        name?: string
+      }
+    }
+
+    if (candidate.type === 'student.create' || candidate.type === 'student.update') {
+      const student = candidate.payload?.student
+      if (!student || typeof student.id !== 'string') return
+      const id = student.id.trim()
+      if (!id) return
+      if (candidate.type === 'student.create') empty.pendingCreateIds.add(id)
+      if (candidate.type === 'student.update') empty.pendingUpdateIds.add(id)
+      if (typeof student.name === 'string' && student.name.trim()) {
+        empty.pendingStudentsById.set(id, {
+          id,
+          name: student.name.trim(),
+          shareCode: typeof student.shareCode === 'string' ? student.shareCode.trim() || undefined : undefined,
+        })
+      }
+      return
+    }
+
+    if (candidate.type === 'student.delete') {
+      const payloadStudentId = candidate.payload?.studentId
+      if (typeof payloadStudentId === 'string' && payloadStudentId.trim()) {
+        empty.pendingDeleteIds.add(payloadStudentId.trim())
+      }
+    }
+  })
+
+  return empty
 }
 
 const writeStorage = <T>(key: string, value: T) => {
@@ -404,6 +469,66 @@ const mapSupabaseData = (
   }
 }
 
+const mergePendingLocalStudents = (
+  remoteData: TrainerData,
+  localData: TrainerData,
+  queueInsights: QueueInsights,
+): TrainerData => {
+  const remoteById = new Map(remoteData.students.map((student) => [student.id, student]))
+  const mergedStudents = [...remoteData.students]
+
+  localData.students.forEach((localStudent) => {
+    if (queueInsights.pendingDeleteIds.has(localStudent.id)) return
+    const shouldInsert = queueInsights.pendingCreateIds.has(localStudent.id) && !remoteById.has(localStudent.id)
+    const shouldPatch = queueInsights.pendingUpdateIds.has(localStudent.id) && remoteById.has(localStudent.id)
+
+    if (shouldInsert) {
+      mergedStudents.push(localStudent)
+      remoteById.set(localStudent.id, localStudent)
+      return
+    }
+
+    if (shouldPatch) {
+      const index = mergedStudents.findIndex((student) => student.id === localStudent.id)
+      if (index >= 0) {
+        mergedStudents[index] = localStudent
+      }
+    }
+  })
+
+  const filteredStudents = mergedStudents.filter((student) => !queueInsights.pendingDeleteIds.has(student.id))
+  const visibleIds = new Set(filteredStudents.map((student) => student.id))
+
+  const mergedSessions = [
+    ...remoteData.sessions.filter((session) => visibleIds.has(session.studentId)),
+    ...localData.sessions.filter(
+      (session) =>
+        visibleIds.has(session.studentId) &&
+        queueInsights.pendingCreateIds.has(session.studentId) &&
+        !remoteData.sessions.some((remoteSession) => remoteSession.id === session.id),
+    ),
+  ]
+
+  const workoutByStudent: WorkoutByStudent = {}
+  visibleIds.forEach((studentId) => {
+    const remoteWorkout = remoteData.workoutByStudent[studentId]
+    if (remoteWorkout && remoteWorkout.length > 0) {
+      workoutByStudent[studentId] = remoteWorkout
+      return
+    }
+    const localWorkout = localData.workoutByStudent[studentId]
+    if (localWorkout && localWorkout.length > 0) {
+      workoutByStudent[studentId] = localWorkout
+    }
+  })
+
+  return {
+    students: filteredStudents,
+    sessions: mergedSessions,
+    workoutByStudent,
+  }
+}
+
 const loadFromSupabase = async (userId: string): Promise<TrainerData | null> => {
   if (!supabase) {
     return null
@@ -495,16 +620,25 @@ const loadFromSupabase = async (userId: string): Promise<TrainerData | null> => 
 
 export const loadTrainerData = async (userId?: string): Promise<TrainerData> => {
   if (hasSupabaseCredentials && userId) {
+    const localData = readScopedStorage<TrainerData>(dataStorageKey, legacyDataStorageKey, userId)
+    const queueInsights = readQueueInsights(userId)
     const supabaseData = await loadFromSupabase(userId)
-    // Em modo Supabase nunca cai para seed/demo local.
-    // Isso evita aluno logado aparecer como "personal" por dados de fallback.
-    return (
-      supabaseData ?? {
-        students: [],
-        sessions: [],
-        workoutByStudent: {},
-      }
-    )
+    if (!supabaseData) {
+      return localData ?? buildEmptyTrainerData()
+    }
+
+    const hasPendingLocalStudents =
+      queueInsights.pendingCreateIds.size > 0 ||
+      queueInsights.pendingUpdateIds.size > 0 ||
+      queueInsights.pendingDeleteIds.size > 0
+
+    const finalData =
+      hasPendingLocalStudents && localData
+        ? mergePendingLocalStudents(supabaseData, localData, queueInsights)
+        : supabaseData
+
+    writeStorage(scopedKey(dataStorageKey, userId), finalData)
+    return finalData
   }
 
   if (hasSupabaseCredentials && !userId) {
