@@ -323,13 +323,6 @@ const processOperation = async (operation: SyncQueueOperation): Promise<'process
       return saved ? 'processed' : 'failed'
     }
     case 'workout.save': {
-      const stale = await isStaleAgainstRemote({
-        table: 'students',
-        id: operation.payload.studentId,
-        userId: operation.userId,
-        localUpdatedAt: operation.localUpdatedAt,
-      })
-      if (stale) return 'skipped'
       const saved = await saveStudentWorkoutAtomicallyRemotely(
         operation.payload.studentId,
         operation.payload.workout,

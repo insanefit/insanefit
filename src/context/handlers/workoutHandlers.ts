@@ -536,6 +536,8 @@ export const createWorkoutHandlers = (deps: WorkoutHandlerDeps) => {
       return
     }
 
+    setSyncMessage('Salvando treino...')
+
     setTrainerData((current) => ({
       ...current,
       workoutByStudent: { ...current.workoutByStudent, [selectedStudentId]: workout },
