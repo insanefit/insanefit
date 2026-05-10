@@ -522,11 +522,10 @@ const mergePendingLocalStudents = (
   const workoutByStudent: WorkoutByStudent = {}
   visibleIds.forEach((studentId) => {
     if (queueInsights.pendingWorkoutSaveIds.has(studentId)) {
-      const localWorkout = localData.workoutByStudent[studentId]
-      if (localWorkout && localWorkout.length > 0) {
-        workoutByStudent[studentId] = localWorkout
-        return
-      }
+      // Se existe save pendente (inclusive treino vazio), o rascunho local
+      // precisa prevalecer para evitar "ressuscitar" exercicios antigos da nuvem.
+      workoutByStudent[studentId] = localData.workoutByStudent[studentId] ?? []
+      return
     }
 
     const remoteWorkout = remoteData.workoutByStudent[studentId]
