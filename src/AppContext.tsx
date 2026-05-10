@@ -407,7 +407,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   useWorkoutDraftSyncEffect({
     selectedStudentId,
-    workoutByStudent: trainerData.workoutByStudent,
+    selectedStudentWorkout: trainerData.workoutByStudent[selectedStudentId] ?? [],
     setWorkoutDraft,
     setDemoExercise,
     setEditingDraftExerciseId,

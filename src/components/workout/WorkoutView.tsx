@@ -1374,6 +1374,7 @@ export function WorkoutView() {
                   <button type="button" className="btn-primary" onClick={handleSaveWorkoutDraft}>
                     Finalizar treino
                   </button>
+                  {syncMessage && <p className="status-line">{syncMessage}</p>}
                 </div>
               </div>
             </>

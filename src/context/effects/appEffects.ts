@@ -23,7 +23,7 @@ import { workoutToDraft } from '../../utils/workoutProtocol'
 import { flushSyncQueue, getSyncQueueCount } from '../../services/offlineSyncQueue'
 import { cancelIdleTask, scheduleIdleTask } from '../../utils/idle'
 import type { CoachProfile } from '../../types/coach'
-import type { StudentPortalData, TrainerData, WorkoutByStudent } from '../../types/trainer'
+import type { Exercise, StudentPortalData, TrainerData } from '../../types/trainer'
 import type { BillingProfile } from '../../types/billing'
 import type { ExerciseVideoAttachment, ExerciseVideoCloudStatus } from '../../types/video'
 import type { ProgressHistoryEntry, WorkoutDraftItem } from '../../types/workout'
@@ -473,7 +473,7 @@ export const usePendingClaimEffect = ({
 
 type WorkoutDraftSyncDeps = {
   selectedStudentId: string
-  workoutByStudent: WorkoutByStudent
+  selectedStudentWorkout: Exercise[]
   setWorkoutDraft: Dispatch<SetStateAction<WorkoutDraftItem[]>>
   setDemoExercise: Dispatch<SetStateAction<LibraryExercise | null>>
   setEditingDraftExerciseId: Dispatch<SetStateAction<string | null>>
@@ -481,7 +481,7 @@ type WorkoutDraftSyncDeps = {
 
 export const useWorkoutDraftSyncEffect = ({
   selectedStudentId,
-  workoutByStudent,
+  selectedStudentWorkout,
   setWorkoutDraft,
   setDemoExercise,
   setEditingDraftExerciseId,
@@ -495,8 +495,7 @@ export const useWorkoutDraftSyncEffect = ({
         return
       }
 
-      const nextWorkout = workoutByStudent[selectedStudentId] ?? []
-      const nextDraft = workoutToDraft(selectedStudentId, nextWorkout)
+      const nextDraft = workoutToDraft(selectedStudentId, selectedStudentWorkout)
       setWorkoutDraft(nextDraft)
       setEditingDraftExerciseId(nextDraft[0]?.id ?? null)
     }, 0)
@@ -504,7 +503,7 @@ export const useWorkoutDraftSyncEffect = ({
     return () => {
       window.clearTimeout(timeoutId)
     }
-  }, [selectedStudentId, workoutByStudent, setWorkoutDraft, setDemoExercise, setEditingDraftExerciseId])
+  }, [selectedStudentId, selectedStudentWorkout, setWorkoutDraft, setDemoExercise, setEditingDraftExerciseId])
 }
 
 type TimerDeps = {
