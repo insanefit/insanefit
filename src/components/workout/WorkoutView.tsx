@@ -535,7 +535,6 @@ export function WorkoutView() {
                     type="button"
                     className="btn-primary"
                     onClick={() => setWorkoutBuilderStep('protocolo')}
-                    disabled={workoutDraft.length === 0}
                   >
                     Ir para protocolo ({workoutDraft.length})
                   </button>

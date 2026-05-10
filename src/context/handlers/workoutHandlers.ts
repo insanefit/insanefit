@@ -520,10 +520,6 @@ export const createWorkoutHandlers = (deps: WorkoutHandlerDeps) => {
     }
 
     const normalizedDraft = workoutDraft.filter((item) => item.name.trim().length > 0)
-    if (normalizedDraft.length === 0) {
-      setSyncMessage('Adicione ao menos 1 exercicio na ficha antes de finalizar o treino.')
-      return
-    }
     const workout: Exercise[] = draftToWorkout(normalizedDraft)
     const localUpdatedAt = new Date().toISOString()
 
@@ -569,7 +565,9 @@ export const createWorkoutHandlers = (deps: WorkoutHandlerDeps) => {
         setSyncMessage(`${syncResult.message} ${pending} sincronizacao(oes) pendente(s).`)
         return
       }
-      setSyncMessage(syncResult.message)
+      setSyncMessage(
+        workout.length === 0 ? 'Treino limpo e sincronizado com sucesso.' : syncResult.message,
+      )
       return
     } catch (error) {
       const pending = enqueueSyncOperation({
@@ -580,7 +578,9 @@ export const createWorkoutHandlers = (deps: WorkoutHandlerDeps) => {
         localUpdatedAt,
       })
       const message = error instanceof Error ? error.message : 'erro inesperado na sincronizacao'
-      setSyncMessage(`Falha ao sincronizar treino (${message}). ${pending} sincronizacao(oes) pendente(s).`)
+      setSyncMessage(
+        `Falha ao sincronizar treino (${message}). ${pending} sincronizacao(oes) pendente(s).`,
+      )
       return
     }
   }
