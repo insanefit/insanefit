@@ -101,6 +101,7 @@ export function WorkoutView() {
   const [showManualCreateForm, setShowManualCreateForm] = useState(false)
   const [showPlanningTools, setShowPlanningTools] = useState(false)
   const [collapsedDraftExerciseIds, setCollapsedDraftExerciseIds] = useState<string[]>([])
+  const [finalizeLoading, setFinalizeLoading] = useState(false)
   const [activeDraftDayChoice, setActiveDraftDayChoice] = useState('')
   const [draftDayFilterChoice, setDraftDayFilterChoice] = useState<'Todos' | string>('Todos')
   const [activeDraftRoutineChoice, setActiveDraftRoutineChoice] = useState('A')
@@ -245,6 +246,32 @@ export function WorkoutView() {
   const handleOpenManualCreate = () => {
     setWorkoutBuilderStep('protocolo')
     setShowManualCreateForm(true)
+  }
+
+  const getNextDraftDay = () => {
+    if (studentAvailableDays.length === 0) return ''
+    const currentIndex = studentAvailableDays.findIndex((day) => day === activeDraftDay)
+    if (currentIndex < 0) return studentAvailableDays[0] ?? ''
+    const nextIndex = (currentIndex + 1) % studentAvailableDays.length
+    return studentAvailableDays[nextIndex] ?? studentAvailableDays[0] ?? ''
+  }
+
+  const runFinalizeWorkout = async (advanceToNextDay: boolean) => {
+    if (finalizeLoading) return
+    setFinalizeLoading(true)
+    try {
+      await handleSaveWorkoutDraft()
+      if (advanceToNextDay) {
+        const nextDay = getNextDraftDay()
+        if (nextDay) {
+          setActiveDraftDayChoice(nextDay)
+          setDraftDayFilterChoice(nextDay)
+        }
+        setWorkoutBuilderStep('biblioteca')
+      }
+    } finally {
+      setFinalizeLoading(false)
+    }
   }
 
   const handleSubmitManualCreate = (event: FormEvent<HTMLFormElement>) => {
@@ -408,9 +435,22 @@ export function WorkoutView() {
             <button
               type="button"
               className="btn-primary"
-              onClick={handleSaveWorkoutDraft}
+              onClick={() => {
+                void runFinalizeWorkout(false)
+              }}
+              disabled={finalizeLoading}
             >
-              Finalizar treino
+              {finalizeLoading ? 'Salvando...' : 'Finalizar treino'}
+            </button>
+            <button
+              type="button"
+              className="btn-secondary"
+              onClick={() => {
+                void runFinalizeWorkout(true)
+              }}
+              disabled={finalizeLoading}
+            >
+              {finalizeLoading ? 'Aguarde...' : 'Finalizar e proximo dia'}
             </button>
           </div>
 
@@ -1380,9 +1420,28 @@ export function WorkoutView() {
                     ))}
                   </div>
 
-                  <button type="button" className="btn-primary" onClick={handleSaveWorkoutDraft}>
-                    Finalizar treino
-                  </button>
+                  <div className="video-attach-actions">
+                    <button
+                      type="button"
+                      className="btn-primary"
+                      onClick={() => {
+                        void runFinalizeWorkout(false)
+                      }}
+                      disabled={finalizeLoading}
+                    >
+                      {finalizeLoading ? 'Salvando...' : 'Finalizar treino'}
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-secondary"
+                      onClick={() => {
+                        void runFinalizeWorkout(true)
+                      }}
+                      disabled={finalizeLoading}
+                    >
+                      {finalizeLoading ? 'Aguarde...' : 'Finalizar e proximo dia'}
+                    </button>
+                  </div>
                   {syncMessage && <p className="status-line">{syncMessage}</p>}
                 </div>
               </div>
