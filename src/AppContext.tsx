@@ -622,6 +622,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     handleRemoveDraftExercise,
     handleUpdateDraftExercise,
     handleSaveWorkoutDraft,
+    handleClearStudentWorkout,
     handleAddManualExercise,
   } = createWorkoutHandlers({
     mergedExerciseLibrary,
@@ -837,6 +838,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     handleRemoveDraftExercise,
     handleUpdateDraftExercise,
     handleSaveWorkoutDraft,
+    handleClearStudentWorkout,
     handleApplyWorkoutTemplate,
     handleApplyQuickProtocol,
     handleQuickAddExercise,
@@ -898,6 +900,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     handleRemoveDraftExercise,
     handleUpdateDraftExercise,
     handleSaveWorkoutDraft,
+    handleClearStudentWorkout,
     handleApplyWorkoutTemplate,
     handleApplyQuickProtocol,
     handleQuickAddExercise,

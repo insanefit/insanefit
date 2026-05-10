@@ -38,6 +38,7 @@ export function WorkoutView() {
     editingDraftExerciseId,
     setEditingDraftExerciseId,
     handleSaveWorkoutDraft,
+    handleClearStudentWorkout,
     handleApplyWorkoutTemplate,
     handleAddExerciseToDraft,
     handleRemoveDraftExercise,
@@ -1031,6 +1032,15 @@ export function WorkoutView() {
                         onClick={() => setWorkoutBuilderStep('biblioteca')}
                       >
                         Voltar para biblioteca
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-ghost"
+                        onClick={() => {
+                          void handleClearStudentWorkout()
+                        }}
+                      >
+                        Limpar ficha inteira
                       </button>
                       <span className="chip">{workoutDraft.length} exercicios</span>
                     </div>

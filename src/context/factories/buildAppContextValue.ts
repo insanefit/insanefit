@@ -113,6 +113,7 @@ const workoutKeys = [
   'handleRemoveDraftExercise',
   'handleUpdateDraftExercise',
   'handleSaveWorkoutDraft',
+  'handleClearStudentWorkout',
   'handleApplyWorkoutTemplate',
   'handleApplyQuickProtocol',
   'handleQuickAddExercise',

@@ -172,6 +172,7 @@ export type AppContextType = {
     value: WorkoutDraftItem[K],
   ) => void
   handleSaveWorkoutDraft: () => Promise<void>
+  handleClearStudentWorkout: () => Promise<void>
   handleApplyWorkoutTemplate: (template: WorkoutTemplate, day?: string, routine?: string) => void
   handleApplyQuickProtocol: (event: FormEvent<HTMLFormElement>) => void
   handleQuickAddExercise: (event: FormEvent<HTMLFormElement>, day?: string, routine?: string) => void

@@ -513,26 +513,13 @@ export const createWorkoutHandlers = (deps: WorkoutHandlerDeps) => {
     setWorkoutDraft((current) => current.map((item) => (item.id === draftId ? { ...item, [field]: value } : item)))
   }
 
-  const handleSaveWorkoutDraft = async () => {
+  const persistWorkoutForStudent = async (workout: Exercise[]) => {
     if (!selectedStudentId) {
       setSyncMessage('Selecione um aluno para montar o treino.')
       return
     }
 
-    const normalizedDraft = workoutDraft.filter((item) => item.name.trim().length > 0)
-    const workout: Exercise[] = draftToWorkout(normalizedDraft)
     const localUpdatedAt = new Date().toISOString()
-
-    const workoutValidation = workoutSaveSchema.safeParse({
-      studentId: selectedStudentId,
-      workout,
-    })
-    if (!workoutValidation.success) {
-      setSyncMessage(workoutValidation.error.issues[0]?.message ?? 'Treino invalido para salvar.')
-      return
-    }
-
-    setSyncMessage('Salvando treino...')
 
     setTrainerData((current) => ({
       ...current,
@@ -540,7 +527,7 @@ export const createWorkoutHandlers = (deps: WorkoutHandlerDeps) => {
     }))
 
     if (!hasSupabaseCredentials) {
-      setSyncMessage('Treino personalizado salvo no modo local.')
+      setSyncMessage(workout.length === 0 ? 'Ficha limpa no modo local.' : 'Treino personalizado salvo no modo local.')
       return
     }
     if (!currentUser) {
@@ -565,9 +552,7 @@ export const createWorkoutHandlers = (deps: WorkoutHandlerDeps) => {
         setSyncMessage(`${syncResult.message} ${pending} sincronizacao(oes) pendente(s).`)
         return
       }
-      setSyncMessage(
-        workout.length === 0 ? 'Treino limpo e sincronizado com sucesso.' : syncResult.message,
-      )
+      setSyncMessage(workout.length === 0 ? 'Treino limpo e sincronizado com sucesso.' : syncResult.message)
       return
     } catch (error) {
       const pending = enqueueSyncOperation({
@@ -578,11 +563,42 @@ export const createWorkoutHandlers = (deps: WorkoutHandlerDeps) => {
         localUpdatedAt,
       })
       const message = error instanceof Error ? error.message : 'erro inesperado na sincronizacao'
-      setSyncMessage(
-        `Falha ao sincronizar treino (${message}). ${pending} sincronizacao(oes) pendente(s).`,
-      )
+      setSyncMessage(`Falha ao sincronizar treino (${message}). ${pending} sincronizacao(oes) pendente(s).`)
       return
     }
+  }
+
+  const handleSaveWorkoutDraft = async () => {
+    if (!selectedStudentId) {
+      setSyncMessage('Selecione um aluno para montar o treino.')
+      return
+    }
+
+    const normalizedDraft = workoutDraft.filter((item) => item.name.trim().length > 0)
+    const workout: Exercise[] = draftToWorkout(normalizedDraft)
+
+    const workoutValidation = workoutSaveSchema.safeParse({
+      studentId: selectedStudentId,
+      workout,
+    })
+    if (!workoutValidation.success) {
+      setSyncMessage(workoutValidation.error.issues[0]?.message ?? 'Treino invalido para salvar.')
+      return
+    }
+
+    setSyncMessage('Salvando treino...')
+    await persistWorkoutForStudent(workout)
+  }
+
+  const handleClearStudentWorkout = async () => {
+    if (!selectedStudentId) {
+      setSyncMessage('Selecione um aluno para limpar a ficha.')
+      return
+    }
+    setWorkoutDraft([])
+    setEditingDraftExerciseId(null)
+    setSyncMessage('Limpando ficha...')
+    await persistWorkoutForStudent([])
   }
 
   const handleAddManualExercise = (event: FormEvent<HTMLFormElement>, day = '', routine = 'A') => {
@@ -624,6 +640,7 @@ export const createWorkoutHandlers = (deps: WorkoutHandlerDeps) => {
     handleRemoveDraftExercise,
     handleUpdateDraftExercise,
     handleSaveWorkoutDraft,
+    handleClearStudentWorkout,
     handleAddManualExercise,
   }
 }
