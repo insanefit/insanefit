@@ -1458,6 +1458,14 @@ export const saveStudentWorkoutAtomicallyRemotely = async (
   })
 
   if (rpc.error) {
+    const legacySaved = await replaceExercisesRemotely(normalizedStudentId, exercises, normalizedUserId)
+    if (legacySaved) {
+      return {
+        ok: true,
+        message: 'Treino salvo com fallback de compatibilidade.',
+      }
+    }
+
     return {
       ok: false,
       message: mapRpcErrorMessage(rpc.error.message),
