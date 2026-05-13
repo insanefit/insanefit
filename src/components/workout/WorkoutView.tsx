@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
 import { useMetaContext, useTrainerContext, useWorkoutContext } from '../../context/appContextStore'
 import { getExerciseVideoAttachment } from '../../utils/exerciseUtils'
@@ -177,12 +177,6 @@ export function WorkoutView() {
       }),
     [draftDayFilter, draftRoutineFilter, workoutDraft],
   )
-
-  useEffect(() => {
-    setCollapsedDraftExerciseIds((current) =>
-      current.filter((id) => workoutDraft.some((item) => item.id === id)),
-    )
-  }, [workoutDraft])
 
   const handleDuplicateRoutine = () => {
     const sourceRoutine = normalizeWorkoutRoutine(duplicateSourceRoutine)
