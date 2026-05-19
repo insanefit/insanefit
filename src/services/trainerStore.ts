@@ -55,6 +55,11 @@ type StudentMeta = {
   whatsapp?: string
 }
 
+type SupabaseErrorLike = {
+  code?: string | null
+  message?: string | null
+}
+
 type DeletedStudentFingerprint = {
   id: string
   shareCode?: string
@@ -400,6 +405,52 @@ const pickString = (...values: Array<string | null | undefined>): string | undef
     if (trimmed) return trimmed
   }
   return undefined
+}
+
+const extractMissingColumnFromError = (error: unknown): string | null => {
+  if (!error || typeof error !== 'object') return null
+  const candidate = error as SupabaseErrorLike
+  const message = (candidate.message ?? '').trim()
+  if (!message) return null
+
+  // Postgres: column "updated_at" of relation "students" does not exist
+  const postgresMatch = message.match(/column\s+"([^"]+)"\s+/i)
+  if (postgresMatch?.[1]) return postgresMatch[1]
+
+  // PostgREST schema cache: Could not find the 'updated_at' column...
+  const postgrestMatch = message.match(/'([^']+)'\s+column/i)
+  if (postgrestMatch?.[1]) return postgrestMatch[1]
+
+  return null
+}
+
+const isMissingColumnError = (error: unknown): boolean =>
+  extractMissingColumnFromError(error) !== null
+
+const stripUnsupportedColumnAndRetry = async (
+  operation: (payload: Record<string, unknown>) => Promise<{ error: unknown }>,
+  payload: Record<string, unknown>,
+): Promise<{ ok: boolean; payload: Record<string, unknown>; error: unknown }> => {
+  const nextPayload = { ...payload }
+  let lastError: unknown = null
+
+  // Evita loop infinito em casos de schema muito antigo ou erro não relacionado.
+  for (let attempt = 0; attempt < 12; attempt += 1) {
+    const result = await operation(nextPayload)
+    if (!result.error) {
+      return { ok: true, payload: nextPayload, error: null }
+    }
+
+    lastError = result.error
+    const missingColumn = extractMissingColumnFromError(result.error)
+    if (!missingColumn || !(missingColumn in nextPayload)) {
+      return { ok: false, payload: nextPayload, error: result.error }
+    }
+
+    delete nextPayload[missingColumn]
+  }
+
+  return { ok: false, payload: nextPayload, error: lastError }
 }
 
 const mapStudentRow = (item: StudentRow, meta?: StudentMeta): Student => {
@@ -995,6 +1046,7 @@ export const saveStudentRemotely = async (student: Student, userId: string): Pro
     persistStudentMeta(student.id, { whatsapp: student.whatsapp }, userId)
     return student
   }
+  const client = supabase
 
   const shareCode = student.shareCode?.trim() || createShareCode()
   const updatedAt = new Date().toISOString()
@@ -1018,17 +1070,20 @@ export const saveStudentRemotely = async (student: Student, userId: string): Pro
       updated_at: student.updatedAt ?? updatedAt,
     }
 
-  const normalizedInsert = await (supabase
-    .from('students') as unknown as {
-      upsert: (
-        payload: Record<string, unknown>,
-        options: { onConflict: string },
-      ) => Promise<{ error: unknown }>
-    })
-    .upsert(normalizedInsertPayload, { onConflict: 'id' })
+  const normalizedInsert = await stripUnsupportedColumnAndRetry(
+    async (payload) =>
+      (client
+        .from('students') as unknown as {
+        upsert: (
+          innerPayload: Record<string, unknown>,
+          options: { onConflict: string },
+        ) => Promise<{ error: unknown }>
+      }).upsert(payload, { onConflict: 'id' }),
+    normalizedInsertPayload,
+  )
 
-  if (!normalizedInsert.error) {
-    const verification = await supabase
+  if (normalizedInsert.ok) {
+    const verification = await client
       .from('students')
       .select('*')
       .eq('id', student.id)
@@ -1045,7 +1100,12 @@ export const saveStudentRemotely = async (student: Student, userId: string): Pro
   }
 
   // Compatibilidade: schema antigo sem colunas normalizadas.
-  const legacyInsert = await supabase
+  // Se o erro não era de coluna ausente, não adianta tentar um payload legado.
+  if (!isMissingColumnError(normalizedInsert.error)) {
+    return null
+  }
+
+  const legacyInsert = await client
     .from('students')
     .upsert({
       id: student.id,
@@ -1063,7 +1123,7 @@ export const saveStudentRemotely = async (student: Student, userId: string): Pro
     return null
   }
 
-  const legacyVerification = await supabase
+  const legacyVerification = await client
     .from('students')
     .select('*')
     .eq('id', student.id)
@@ -1084,6 +1144,7 @@ export const updateStudentRemotely = async (student: Student, userId: string): P
     persistStudentMeta(student.id, { whatsapp: student.whatsapp }, userId)
     return true
   }
+  const client = supabase
 
   const normalizedUpdatePayload: Record<string, unknown> = {
       name: student.name,
@@ -1098,23 +1159,31 @@ export const updateStudentRemotely = async (student: Student, userId: string): P
       access_end_date: student.accessEndDate ?? null,
     }
 
-  const normalizedUpdate = await (supabase
-    .from('students') as unknown as {
-      update: (payload: Record<string, unknown>) => {
-        eq: (column: string, value: string) => { eq: (column: string, value: string) => Promise<{ error: unknown }> }
-      }
-    })
-    .update(normalizedUpdatePayload)
-    .eq('id', student.id)
-    .eq('user_id', userId)
+  const normalizedUpdate = await stripUnsupportedColumnAndRetry(
+    async (payload) =>
+      (client
+        .from('students') as unknown as {
+        update: (innerPayload: Record<string, unknown>) => {
+          eq: (column: string, value: string) => { eq: (column: string, value: string) => Promise<{ error: unknown }> }
+        }
+      })
+        .update(payload)
+        .eq('id', student.id)
+        .eq('user_id', userId),
+    normalizedUpdatePayload,
+  )
 
-  if (!normalizedUpdate.error) {
+  if (normalizedUpdate.ok) {
     persistStudentMeta(student.id, { whatsapp: student.whatsapp }, userId)
     return true
   }
 
   // Compatibilidade: schema antigo sem colunas normalizadas.
-  const legacyUpdate = await supabase
+  if (!isMissingColumnError(normalizedUpdate.error)) {
+    return false
+  }
+
+  const legacyUpdate = await client
     .from('students')
     .update({
       name: student.name,
@@ -1171,30 +1240,29 @@ export const deleteStudentRemotely = async (studentId: string, userId: string): 
     .eq('student_id', studentId)
     .eq('user_id', userId)
 
-  const { data, error } = await supabase
+  const { error } = await supabase
     .from('students')
     .delete()
     .eq('id', studentId)
     .eq('user_id', userId)
-    .select('id')
-    .maybeSingle()
 
-  if (!error && data) {
-    const verify = await supabase
-      .from('students')
-      .select('id')
-      .eq('id', studentId)
-      .eq('user_id', userId)
-      .maybeSingle()
-
-    if (!verify.error && verify.data) {
-      return false
-    }
-    persistStudentMeta(studentId, { whatsapp: '' }, userId)
-    return true
+  if (error) {
+    return false
   }
 
-  return false
+  const verify = await supabase
+    .from('students')
+    .select('id')
+    .eq('id', studentId)
+    .eq('user_id', userId)
+    .maybeSingle()
+
+  if (!verify.error && verify.data) {
+    return false
+  }
+
+  persistStudentMeta(studentId, { whatsapp: '' }, userId)
+  return true
 }
 
 export const loadStudentPortalData = async (userId: string): Promise<StudentPortalData | null> => {

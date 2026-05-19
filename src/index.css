@@ -2507,6 +2507,45 @@ select:focus-visible {
   color: var(--muted);
 }
 
+.student-card-name-link {
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: var(--text);
+  border: 0;
+  background: none;
+  text-align: left;
+  padding: 0;
+  cursor: pointer;
+}
+
+.student-card-name-link:hover {
+  color: #ff3d5d;
+}
+
+.student-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.24rem;
+}
+
+.student-card-action {
+  border: 1px solid var(--line);
+  background: rgba(10, 16, 30, 0.72);
+  color: var(--text);
+  border-radius: 999px;
+  padding: 0.2rem 0.55rem;
+  font-size: 0.68rem;
+  font-family: var(--font-display);
+  cursor: pointer;
+}
+
+.student-card-action-primary {
+  border-color: rgba(255, 70, 96, 0.48);
+  background: rgba(180, 22, 46, 0.4);
+}
+
 .student-card.active {
   border-color: #933149;
   background: rgba(200, 16, 46, 0.14);

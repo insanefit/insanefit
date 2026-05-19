@@ -6,6 +6,7 @@ export function StudentsView() {
     selectedStudentId,
     setSelectedStudentId,
     setEditingStudent,
+    handleMenuClick,
     studentForm,
     setStudentForm,
     handleCreateStudent,
@@ -27,20 +28,41 @@ export function StudentsView() {
       </div>
 
       <div className="student-grid">
-        {students.map((student) => (
-          <button
-            key={student.id}
-            type="button"
-            className={student.id === selectedStudentId ? 'student-card active' : 'student-card'}
-            onClick={() => {
-              setSelectedStudentId(student.id)
-              setEditingStudent(false)
-            }}
-          >
-            <strong>{student.name}</strong>
-            <span>{getStudentTrainingLevel(student)} • {getStudentWorkoutType(student)}</span>
-          </button>
-        ))}
+        {students.map((student) => {
+          const selectStudent = () => {
+            setSelectedStudentId(student.id)
+            setEditingStudent(false)
+          }
+
+          const openStudentWorkout = () => {
+            selectStudent()
+            handleMenuClick('Treinos')
+          }
+
+          return (
+            <div
+              key={student.id}
+              className={student.id === selectedStudentId ? 'student-card active' : 'student-card'}
+            >
+              <button
+                type="button"
+                className="student-card-name-link"
+                onClick={openStudentWorkout}
+              >
+                {student.name}
+              </button>
+              <span>{getStudentTrainingLevel(student)} • {getStudentWorkoutType(student)}</span>
+              <div className="student-card-actions">
+                <button type="button" className="student-card-action" onClick={selectStudent}>
+                  Ver aluno
+                </button>
+                <button type="button" className="student-card-action student-card-action-primary" onClick={openStudentWorkout}>
+                  Abrir treino
+                </button>
+              </div>
+            </div>
+          )
+        })}
       </div>
 
       <form className="form-stack" onSubmit={handleCreateStudent}>
