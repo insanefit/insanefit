@@ -1400,6 +1400,30 @@ select:focus-visible {
   font-size: 0.95rem;
 }
 
+.dashboard-focus-link {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  margin: 0;
+  display: block;
+  text-align: left;
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: inherit;
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-color: rgba(255, 118, 142, 0.45);
+  text-underline-offset: 0.18rem;
+}
+
+.dashboard-focus-link:hover,
+.dashboard-focus-link:focus-visible {
+  color: #ffd6df;
+  text-decoration-color: rgba(255, 161, 180, 0.8);
+}
+
 .dashboard-focus span {
   display: block;
   margin-top: 0.16rem;

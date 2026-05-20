@@ -26,6 +26,14 @@ export function DashboardView() {
     hasSupabaseCredentials,
   } = useMetaContext()
 
+  const handleOpenFocusedStudentWorkout = () => {
+    if (selectedStudent) {
+      handleMenuClick('Treinos')
+      return
+    }
+    handleMenuClick('Alunos')
+  }
+
   return (
     <>
       <section id="stats" className="stat-grid">
@@ -83,7 +91,18 @@ export function DashboardView() {
         <div className="dashboard-focus">
           <div>
             <p className="field-label">Aluno em foco</p>
-            <strong>{selectedStudent?.name ?? 'Sem aluno selecionado'}</strong>
+            {selectedStudent ? (
+              <button
+                type="button"
+                className="dashboard-focus-link"
+                onClick={handleOpenFocusedStudentWorkout}
+                title={`Abrir treinos de ${selectedStudent.name}`}
+              >
+                {selectedStudent.name}
+              </button>
+            ) : (
+              <strong>Sem aluno selecionado</strong>
+            )}
             <span>
               {selectedStudent
                 ? `${getStudentTrainingLevel(selectedStudent)} • ${getStudentWorkoutType(selectedStudent)}`
