@@ -88,21 +88,19 @@ export function DashboardView() {
           </article>
         </div>
 
-        <div className="dashboard-focus">
+        <button
+          type="button"
+          className="dashboard-focus dashboard-focus-card"
+          onClick={handleOpenFocusedStudentWorkout}
+          title={
+            selectedStudent
+              ? `Abrir treinos de ${selectedStudent.name}`
+              : 'Ir para alunos e selecionar aluno'
+          }
+        >
           <div>
             <p className="field-label">Aluno em foco</p>
-            {selectedStudent ? (
-              <button
-                type="button"
-                className="dashboard-focus-link"
-                onClick={handleOpenFocusedStudentWorkout}
-                title={`Abrir treinos de ${selectedStudent.name}`}
-              >
-                {selectedStudent.name}
-              </button>
-            ) : (
-              <strong>Sem aluno selecionado</strong>
-            )}
+            <strong>{selectedStudent?.name ?? 'Sem aluno selecionado'}</strong>
             <span>
               {selectedStudent
                 ? `${getStudentTrainingLevel(selectedStudent)} • ${getStudentWorkoutType(selectedStudent)}`
@@ -118,7 +116,7 @@ export function DashboardView() {
                 : 'Ainda sem treino salvo para esse aluno.'}
             </span>
           </div>
-        </div>
+        </button>
       </section>
 
       {hasSupabaseCredentials && currentUser && !studentPortal && !hasTrainerWorkspace && (

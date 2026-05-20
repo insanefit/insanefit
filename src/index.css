@@ -1400,28 +1400,29 @@ select:focus-visible {
   font-size: 0.95rem;
 }
 
-.dashboard-focus-link {
-  appearance: none;
-  border: 0;
-  background: transparent;
-  padding: 0;
-  margin: 0;
-  display: block;
+.dashboard-focus-card {
+  width: 100%;
   text-align: left;
-  font: inherit;
-  font-size: 0.95rem;
-  font-weight: 700;
-  color: inherit;
+  border: 1px solid #8d364a;
   cursor: pointer;
-  text-decoration: underline;
-  text-decoration-color: rgba(255, 118, 142, 0.45);
-  text-underline-offset: 0.18rem;
+  transition:
+    border-color var(--normal) var(--ease),
+    box-shadow var(--normal) var(--ease),
+    transform var(--fast) var(--ease);
 }
 
-.dashboard-focus-link:hover,
-.dashboard-focus-link:focus-visible {
-  color: #ffd6df;
-  text-decoration-color: rgba(255, 161, 180, 0.8);
+.dashboard-focus-card:hover,
+.dashboard-focus-card:focus-visible {
+  border-color: #c44a66;
+  box-shadow: 0 0 0 1px rgba(255, 95, 125, 0.35);
+}
+
+.dashboard-focus-card:active {
+  transform: translateY(1px);
+}
+
+.dashboard-focus-card:focus-visible {
+  outline: none;
 }
 
 .dashboard-focus span {
