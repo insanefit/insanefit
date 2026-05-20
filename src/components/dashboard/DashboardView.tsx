@@ -1,3 +1,4 @@
+import type { KeyboardEvent } from 'react'
 import {
   useAuthContext,
   useMetaContext,
@@ -32,6 +33,13 @@ export function DashboardView() {
       return
     }
     handleMenuClick('Alunos')
+  }
+
+  const handleFocusedStudentCardKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault()
+      handleOpenFocusedStudentWorkout()
+    }
   }
 
   return (
@@ -88,10 +96,12 @@ export function DashboardView() {
           </article>
         </div>
 
-        <button
-          type="button"
+        <div
+          role="button"
+          tabIndex={0}
           className="dashboard-focus dashboard-focus-card"
           onClick={handleOpenFocusedStudentWorkout}
+          onKeyDown={handleFocusedStudentCardKeyDown}
           title={
             selectedStudent
               ? `Abrir treinos de ${selectedStudent.name}`
@@ -116,7 +126,7 @@ export function DashboardView() {
                 : 'Ainda sem treino salvo para esse aluno.'}
             </span>
           </div>
-        </button>
+        </div>
       </section>
 
       {hasSupabaseCredentials && currentUser && !studentPortal && !hasTrainerWorkspace && (

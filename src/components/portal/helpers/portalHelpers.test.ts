@@ -195,33 +195,26 @@ describe('normalizeThumbnailCacheStore', () => {
 
 describe('buildExerciseSeriesSteps', () => {
   it('builds warmup + feeder + work steps', () => {
-    const protocol = {
-  warmup: '...',
-  feederSets: '...',
-  feederReps: '...',
-  feederRpe: '...',
-  workSets: '...',
-  workReps: '...',
-  workRpe: '...',
-  rest: '...',
-  useClusterSet: false,
-  clusterBlocks: '',
-  clusterReps: '',
-  clusterRest: '',
-  useMyoReps: false,
-  myoActivation: '',
-  myoMiniSets: '',
-  myoRest: '',
-  day: 'Seg',
-  routine: 'Treino A',
-  note: '',
-}
     const steps = buildExerciseSeriesSteps('Supino Reto', {
-      ...protocol,
+      warmup: '50%x15',
+      feederSets: '2',
+      feederReps: '5-6',
+      feederRpe: '6',
+      workSets: '3',
+      workReps: '8-10',
+      workRpe: '8',
+      rest: '90s',
+      useClusterSet: false,
+      clusterBlocks: '',
+      clusterReps: '',
+      clusterRest: '',
+      useMyoReps: false,
+      myoMiniSets: '',
+      myoMiniReps: '',
+      myoRest: '',
       day: 'Seg',
       routine: 'Treino A',
       note: '',
-      myoMiniReps: '',
     })
     expect(steps.length).toBe(6) // 1 warmup + 2 feeder + 3 work
     expect(steps[0].label).toContain('Aquecimento')
@@ -230,33 +223,26 @@ describe('buildExerciseSeriesSteps', () => {
   })
 
   it('adds cluster blocks when enabled', () => {
-    const protocol = {
-  warmup: '...',
-  feederSets: '...',
-  feederReps: '...',
-  feederRpe: '...',
-  workSets: '...',
-  workReps: '...',
-  workRpe: '...',
-  rest: '...',
-  useClusterSet: false,
-  clusterBlocks: '',
-  clusterReps: '',
-  clusterRest: '',
-  useMyoReps: false,
-  myoActivation: '',
-  myoMiniSets: '',
-  myoRest: '',
-  day: 'Seg',
-  routine: 'Treino A',
-  note: '',
-}
     const steps = buildExerciseSeriesSteps('Agachamento', {
-      ...protocol,
+      warmup: '',
+      feederSets: '0',
+      feederReps: '',
+      feederRpe: '',
+      workSets: '2',
+      workReps: '6-8',
+      workRpe: '9',
+      rest: '120s',
+      useClusterSet: true,
+      clusterBlocks: '3',
+      clusterReps: '2-3',
+      clusterRest: '20s',
+      useMyoReps: false,
+      myoMiniSets: '',
+      myoMiniReps: '',
+      myoRest: '',
       day: 'Seg',
       routine: 'Treino A',
       note: '',
-      myoMiniReps: '',
     })
     // 2 work sets * 3 cluster blocks = 6
     expect(steps.filter((s) => s.label.includes('Cluster'))).toHaveLength(6)
