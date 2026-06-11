@@ -38,7 +38,7 @@ const mapSupabaseAuthMessage = (rawMessage: string): string => {
     message.includes('timeout') ||
     message.includes('load failed')
   ) {
-    return 'Nao foi possivel conectar ao login agora. Limpe o cache do navegador ou tente novamente em alguns segundos.'
+    return 'Servidor de login indisponivel no momento. Verifique se o Supabase esta ativo e tente novamente em alguns minutos.'
   }
 
   return rawMessage
@@ -57,7 +57,7 @@ const mapUnexpectedAuthError = (error: unknown): { ok: false; message: string } 
     return {
       ok: false,
       message:
-        'Nao foi possivel conectar ao login agora. Limpe o cache do navegador ou tente novamente em alguns segundos.',
+        'Servidor de login indisponivel no momento. Verifique se o Supabase esta ativo e tente novamente em alguns minutos.',
     }
   }
 
