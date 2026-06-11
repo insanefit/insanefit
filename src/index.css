@@ -1887,6 +1887,72 @@ select:focus-visible {
   gap: 0.32rem;
 }
 
+.workout-student-picker-panel {
+  border: 1px solid #3f4b60;
+  border-radius: var(--radius-md);
+  background:
+    linear-gradient(120deg, rgba(255, 37, 63, 0.12) 0%, rgba(255, 37, 63, 0) 36%),
+    #171e2a;
+  padding: 0.65rem;
+  gap: 0.55rem;
+}
+
+.workout-student-picker-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+}
+
+.workout-student-picker-head strong {
+  display: block;
+  margin-top: 0.08rem;
+  font-size: 1rem;
+}
+
+.workout-student-quick-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(168px, 1fr));
+  gap: 0.45rem;
+}
+
+.workout-student-chip {
+  border: 1px solid #344154;
+  border-radius: var(--radius-sm);
+  background: #111822;
+  color: #edf3fb;
+  padding: 0.58rem;
+  display: grid;
+  gap: 0.16rem;
+  text-align: left;
+  cursor: pointer;
+  min-height: 78px;
+  transition:
+    border-color var(--normal) var(--ease),
+    background var(--normal) var(--ease),
+    transform var(--fast) var(--ease);
+}
+
+.workout-student-chip strong {
+  font-size: 0.94rem;
+}
+
+.workout-student-chip span,
+.workout-student-chip small {
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
+.workout-student-chip.active {
+  border-color: #ff405d;
+  background: linear-gradient(145deg, rgba(255, 37, 63, 0.24), #151b25 60%);
+  box-shadow: 0 0 0 1px rgba(255, 64, 93, 0.26);
+}
+
+.workout-student-chip:active {
+  transform: translateY(1px);
+}
+
 .library-column,
 .draft-column {
   border: 1px solid var(--line);
@@ -3644,6 +3710,29 @@ select:focus-visible {
 
   .workout-summary-strip .btn-primary {
     width: 100%;
+  }
+
+  .workout-student-picker-head {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .workout-student-picker-head .btn-secondary {
+    width: 100%;
+  }
+
+  .workout-student-quick-strip {
+    grid-template-columns: none;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(188px, 78%);
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    padding-bottom: 0.12rem;
+    scroll-snap-type: x proximity;
+  }
+
+  .workout-student-chip {
+    scroll-snap-align: start;
   }
 
   .workout-day-strip {

@@ -6,7 +6,7 @@ import { WorkoutBuilderProtocol } from './tabs/WorkoutBuilderProtocol'
 
 export function WorkoutView() {
   const {
-    students, sessions, selectedStudent, selectedStudentId, setSelectedStudentId,
+    trainerData, students, sessions, selectedStudent, selectedStudentId, setSelectedStudentId,
     setEditingStudent,
     syncMessage,
     setSyncMessage,
@@ -110,6 +110,19 @@ export function WorkoutView() {
   const hasVideoForDemo =
     demoExercise ? Boolean(getExerciseVideoAttachment(demoExercise.name, exerciseVideoMap)) : false
 
+  const selectStudentForWorkout = (studentId: string) => {
+    setSelectedStudentId(studentId)
+    setEditingStudent(false)
+    setWorkoutBuilderOpen(true)
+    setWorkoutBuilderStep('biblioteca')
+    setActiveDraftDayChoice('')
+    setDraftDayFilterChoice('Todos')
+    setActiveDraftRoutineChoice('A')
+    setDraftRoutineFilterChoice('Todos')
+    setDuplicateSourceRoutine('A')
+    setDuplicateTargetRoutine('B')
+  }
+
   return (
     <section id="workouts" className="panel">
       <div className="panel-head">
@@ -131,23 +144,54 @@ export function WorkoutView() {
       </div>
 
       {students.length > 0 && (
-        <div className="workout-student-pick">
-          <label className="field-label" htmlFor="workout-student-pick">Aluno da ficha</label>
+        <div className="workout-student-pick workout-student-picker-panel">
+          <div className="workout-student-picker-head">
+            <div>
+              <span className="field-label">Escolha o aluno</span>
+              <strong>{selectedStudent ? selectedStudent.name : 'Nenhum aluno selecionado'}</strong>
+            </div>
+            {selectedStudent && (
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={() => {
+                  setWorkoutBuilderOpen(true)
+                  setWorkoutBuilderStep('protocolo')
+                }}
+              >
+                Revisar ficha
+              </button>
+            )}
+          </div>
+
+          <div className="workout-student-quick-strip" aria-label="Alunos para montar treino">
+            {students.map((student) => {
+              const exerciseCount = trainerData.workoutByStudent[student.id]?.length ?? 0
+              return (
+                <button
+                  key={`workout-student-${student.id}`}
+                  type="button"
+                  className={student.id === selectedStudentId ? 'workout-student-chip active' : 'workout-student-chip'}
+                  onClick={() => selectStudentForWorkout(student.id)}
+                >
+                  <strong>{student.name}</strong>
+                  <span>{getStudentTrainingLevel(student)} • {getStudentWorkoutType(student)}</span>
+                  <small>{exerciseCount} exercicios</small>
+                </button>
+              )
+            })}
+          </div>
+
+          <label className="field-label" htmlFor="workout-student-pick">Trocar por lista</label>
           <select
             id="workout-student-pick"
             className="field-input"
             value={selectedStudentId}
             onChange={(event) => {
-              setSelectedStudentId(event.target.value)
-              setEditingStudent(false)
-              setActiveDraftDayChoice('')
-              setDraftDayFilterChoice('Todos')
-              setActiveDraftRoutineChoice('A')
-              setDraftRoutineFilterChoice('Todos')
-              setDuplicateSourceRoutine('A')
-              setDuplicateTargetRoutine('B')
+              selectStudentForWorkout(event.target.value)
             }}
           >
+            <option value="" disabled>Selecione um aluno</option>
             {students.map((student) => (
               <option key={student.id} value={student.id}>
                 {student.name} - {getStudentWorkoutType(student)}
