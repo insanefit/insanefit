@@ -18,15 +18,10 @@ import {
 import { enqueueSyncOperation } from '../../services/offlineSyncQueue'
 import { workoutSaveSchema } from '../../schemas/formSchemas'
 import {
-  buildExerciseDbCandidateMap,
   findExerciseByApproxName,
-  findExerciseDbCandidateForName,
-  getExerciseDbConfig,
   getExerciseDisplayName,
   getExerciseVideoAttachment,
   normalizeExerciseKey,
-  toExerciseDbCandidates,
-  fetchExerciseDbCatalog,
 } from '../../utils/exerciseUtils'
 import { toYoutubeEmbedUrl } from '../../utils/urlUtils'
 import {
@@ -94,7 +89,6 @@ export const createWorkoutHandlers = (deps: WorkoutHandlerDeps) => {
     setExerciseVideoMap,
     setExerciseVideoCloudStatus,
     setSyncMessage,
-    setRapidApiImporting,
     setBatchVideoSaving,
     setBatchVideoInput,
     setWorkoutDraft,
@@ -207,91 +201,7 @@ export const createWorkoutHandlers = (deps: WorkoutHandlerDeps) => {
   }
 
   const handleImportVideosFromExerciseDb = async () => {
-    const config = getExerciseDbConfig()
-    if (!config) {
-      setSyncMessage('Configure VITE_EXERCISEDB_API_KEY no .env para importar animacoes do ExerciseDB (RapidAPI).')
-      return
-    }
-
-    setRapidApiImporting(true)
-    setSyncMessage('Importando animacoes do ExerciseDB...')
-
-    try {
-      const remoteExercises = await fetchExerciseDbCatalog(config)
-      const candidates = toExerciseDbCandidates(remoteExercises)
-
-      if (candidates.length === 0) {
-        setSyncMessage('Nao encontrei exercicios validos no retorno do ExerciseDB.')
-        setRapidApiImporting(false)
-        return
-      }
-
-      const candidateMap = buildExerciseDbCandidateMap(candidates)
-      const nextUpdates: Record<string, ExerciseVideoAttachment> = {}
-      let matched = 0
-
-      mergedExerciseLibrary.forEach((exercise) => {
-        const key = normalizeExerciseKey(exercise.name)
-        if (exerciseVideoMap[key] || nextUpdates[key]) return
-
-        const matchedCandidate = findExerciseDbCandidateForName(exercise.name, candidateMap, candidates)
-        if (!matchedCandidate) return
-
-        nextUpdates[key] = {
-          rawUrl: matchedCandidate.gifUrl,
-          embedUrl: matchedCandidate.gifUrl,
-          licenseLabel: 'ExerciseDB (RapidAPI)',
-          notes: `Importacao automatica RapidAPI - ${matchedCandidate.name}`,
-          updatedAt: new Date().toISOString(),
-        }
-        matched += 1
-      })
-
-      if (matched === 0) {
-        setSyncMessage('Importacao concluida, mas nao houve correspondencia de nomes para novos videos.')
-        setRapidApiImporting(false)
-        return
-      }
-
-      let mergedMap: Record<string, ExerciseVideoAttachment> = {}
-      setExerciseVideoMap((current) => {
-        mergedMap = { ...current, ...nextUpdates }
-        return mergedMap
-      })
-
-      if (hasSupabaseCredentials && currentUser) {
-        const saved = await saveExerciseVideoMapRemotely(currentUser.id, nextUpdates)
-        if (saved.ok) {
-          setExerciseVideoCloudStatus('ready')
-          setSyncMessage(`ExerciseDB aplicado: ${matched} animacoes novas sincronizadas.`)
-        } else if (saved.tableMissing) {
-          setExerciseVideoCloudStatus('missing_table')
-          setSyncMessage(
-            `ExerciseDB aplicado localmente (${matched}), mas falta tabela exercise_videos no Supabase.`,
-          )
-        } else {
-          setExerciseVideoCloudStatus('error')
-          setSyncMessage(`ExerciseDB aplicado localmente (${matched}) com falha de sync na nuvem.`)
-        }
-      } else {
-        setSyncMessage(`ExerciseDB aplicado localmente: ${matched} animacoes novas.`)
-      }
-
-      if (demoExercise) {
-        const refreshedAttachment = mergedMap[normalizeExerciseKey(demoExercise.name)]
-        if (refreshedAttachment) {
-          setVideoAttachmentForm({
-            rawUrl: refreshedAttachment.rawUrl,
-            licenseLabel: refreshedAttachment.licenseLabel,
-            notes: refreshedAttachment.notes,
-          })
-        }
-      }
-    } catch {
-      setSyncMessage('Nao foi possivel importar do ExerciseDB agora. Verifique chave/plano da RapidAPI.')
-    }
-
-    setRapidApiImporting(false)
+    setSyncMessage('Importacao automatica de midias removida. A biblioteca esta focada em montar treinos sem videos por enquanto.')
   }
 
   const handleApplyBatchVideoAttachments = async () => {

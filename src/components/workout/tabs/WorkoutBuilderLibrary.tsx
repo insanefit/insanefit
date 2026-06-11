@@ -1,5 +1,4 @@
 import type { Dispatch, FormEvent, ReactNode, SetStateAction } from 'react'
-import { getExerciseVideoAttachment } from '../../../utils/exerciseUtils'
 import type { LibraryExercise } from '../../../data/exerciseLibrary'
 import type { ExerciseVideoAttachment, ExerciseVideoCloudStatus, DemoViewerOption } from '../../../types/video'
 import type { WorkoutDraftItem } from '../../../types/workout'
@@ -83,19 +82,15 @@ export function WorkoutBuilderLibrary(props: WorkoutBuilderLibraryProps) {
     categoryFilter, setCategoryFilter, equipmentFilter, setEquipmentFilter,
     difficultyFilter, setDifficultyFilter, sourceFilter, setSourceFilter,
     filteredExercises, quickAddExercises, categoryOptions, equipmentOptions, sourceSummary,
-    demoExercise, activeDemoOption, videoAttachmentForm, setVideoAttachmentForm,
-    rapidApiImporting, exerciseVideoCloudStatus, exerciseVideoMap,
-    handleSaveVideoAttachment, handleRemoveVideoAttachment, handleImportVideosFromExerciseDb,
-    handleOpenExerciseDemo, handleAddExerciseToDraft, handleQuickAddExercise, handleApplyWorkoutTemplate,
+    handleAddExerciseToDraft, handleQuickAddExercise, handleApplyWorkoutTemplate,
     quickAddExerciseName, setQuickAddExerciseName,
     libraryTab, setLibraryTab, setLibraryPage,
     showAdvancedLibraryTools, setShowAdvancedLibraryTools,
-    activeDraftDay, activeDraftRoutine, draftNameKeys, videoEnabledCount, draftMatchCount,
+    activeDraftDay, activeDraftRoutine, draftNameKeys, draftMatchCount,
     totalLibraryPages, safeLibraryPage, visibleLibraryExercises, visiblePages,
-    handleClearLibraryFilters, handleOpenManualCreate, handleEditExerciseVideo,
-    extractYoutubeVideoId, buildYoutubeThumbUrl, hasVideoForDemo,
-    muscleGroups, mergedExerciseLibrary, workoutTemplates, hasSupabaseCredentials,
-    getExerciseDisplayName, renderDemoMedia, libraryExercises,
+    handleClearLibraryFilters, handleOpenManualCreate,
+    muscleGroups, mergedExerciseLibrary, workoutTemplates,
+    getExerciseDisplayName, libraryExercises,
   } = props
 
   return (
@@ -130,7 +125,6 @@ export function WorkoutBuilderLibrary(props: WorkoutBuilderLibraryProps) {
 
         <div className="library-source-tabs">
           <button type="button" className={libraryTab === 'app' ? 'tab-chip active' : 'tab-chip'} onClick={() => { setLibraryPage(1); setLibraryTab('app') }}>Exercicios do app ({filteredExercises.length})</button>
-          <button type="button" className={libraryTab === 'withGif' ? 'tab-chip active' : 'tab-chip'} onClick={() => { setLibraryPage(1); setLibraryTab('withGif') }}>Com video ({videoEnabledCount})</button>
           <button type="button" className={libraryTab === 'inDraft' ? 'tab-chip active' : 'tab-chip'} onClick={() => { setLibraryPage(1); setLibraryTab('inDraft') }}>No treino ({draftMatchCount})</button>
         </div>
 
@@ -210,18 +204,12 @@ export function WorkoutBuilderLibrary(props: WorkoutBuilderLibraryProps) {
 
         <div className="library-list compact-list">
           {visibleLibraryExercises.map((exercise) => {
-            const attachment = getExerciseVideoAttachment(exercise.name, exerciseVideoMap)
-            const hasVideo = Boolean(attachment)
-            const previewUrl = attachment?.rawUrl || attachment?.embedUrl || ''
-            const canPreviewImage = /\.(gif|png|jpe?g|webp|avif|svg)(\?|#|$)/i.test(previewUrl)
-            const youtubeVideoId = extractYoutubeVideoId(previewUrl)
-            const previewImageUrl = canPreviewImage ? previewUrl : youtubeVideoId ? buildYoutubeThumbUrl(youtubeVideoId) : ''
             const alreadyInDraft = draftNameKeys.has(exercise.name.trim().toLowerCase())
             return (
               <article key={exercise.id} className="library-item mfit-card">
-                <button type="button" className="library-thumb" onClick={() => handleOpenExerciseDemo(exercise)} aria-label={`Abrir video de ${getExerciseDisplayName(exercise.name)}`}>
-                  {hasVideo && previewImageUrl ? (<img src={previewImageUrl} alt={`Preview ${getExerciseDisplayName(exercise.name)}`} loading="lazy" />) : (<span>{hasVideo ? 'Video' : 'Sem video'}</span>)}
-                </button>
+                <div className="library-thumb library-thumb-static" aria-hidden="true">
+                  <span>{exercise.muscleGroup.slice(0, 3).toUpperCase()}</span>
+                </div>
                 <div className="library-item-text">
                   <strong>{getExerciseDisplayName(exercise.name)}</strong>
                   <div className="library-pill-row">
@@ -231,8 +219,6 @@ export function WorkoutBuilderLibrary(props: WorkoutBuilderLibraryProps) {
                   <span>{exercise.equipment}</span>
                 </div>
                 <div className="library-actions">
-                  <button type="button" className="btn-secondary" onClick={() => handleOpenExerciseDemo(exercise)}>{hasVideo ? 'Ver video' : 'Sem video'}</button>
-                  <button type="button" className="btn-secondary" onClick={() => handleEditExerciseVideo(exercise)}>Editar video</button>
                   <button type="button" className={alreadyInDraft ? 'btn-secondary' : 'btn-primary'} onClick={() => handleAddExerciseToDraft(exercise, activeDraftDay, activeDraftRoutine)} disabled={alreadyInDraft}>{alreadyInDraft ? 'Adicionado' : 'Adicionar'}</button>
                 </div>
               </article>
@@ -249,52 +235,6 @@ export function WorkoutBuilderLibrary(props: WorkoutBuilderLibraryProps) {
           </div>
         )}
 
-        {demoExercise && (
-          <div className="demo-viewer">
-            <div className="demo-head">
-              <strong>Video do exercicio: {getExerciseDisplayName(demoExercise.name)}</strong>
-              <span>{hasVideoForDemo ? 'Video ativo' : 'Sem video'}</span>
-            </div>
-            {activeDemoOption && (
-              <p className="demo-query">Video configurado para este exercicio.{activeDemoOption.licenseLabel ? ` Fonte: ${activeDemoOption.licenseLabel}.` : ''}</p>
-            )}
-            {renderDemoMedia(activeDemoOption, `Demonstracao ${getExerciseDisplayName(demoExercise.name)}`)}
-            {activeDemoOption?.source === 'custom' && activeDemoOption.rawUrl && (
-              <a className="demo-link" href={activeDemoOption.rawUrl} target="_blank" rel="noreferrer">Abrir arquivo original</a>
-            )}
-            <details className="demo-manage-box">
-              <summary>Configurar video deste exercicio</summary>
-              <form className="video-attach-form" onSubmit={handleSaveVideoAttachment}>
-                <label className="field-label" htmlFor="attach-video-url">URL do video</label>
-                <input id="attach-video-url" className="field-input" value={videoAttachmentForm.rawUrl} onChange={(event) => setVideoAttachmentForm((current) => ({ ...current, rawUrl: event.target.value }))} placeholder="Cole URL do video (YouTube, MP4, GIF...)" />
-                <div className="video-attach-grid">
-                  <input className="field-input" value={videoAttachmentForm.licenseLabel} onChange={(event) => setVideoAttachmentForm((current) => ({ ...current, licenseLabel: event.target.value }))} placeholder="Fonte/licenca (opcional)" />
-                  <input className="field-input" value={videoAttachmentForm.notes} onChange={(event) => setVideoAttachmentForm((current) => ({ ...current, notes: event.target.value }))} placeholder="Observacao interna (opcional)" />
-                </div>
-                <div className="video-attach-actions">
-                  <button type="submit" className="btn-primary">Salvar video</button>
-                  <button type="button" className="btn-secondary" onClick={handleRemoveVideoAttachment}>Remover</button>
-                </div>
-                <p className="demo-query">{hasVideoForDemo ? 'Este video ja esta ativo para o aluno.' : 'Sem video configurado para este exercicio.'}</p>
-                {hasSupabaseCredentials && (
-                  <p className="demo-query">
-                    {exerciseVideoCloudStatus === 'ready' && 'Sincronizacao de videos: ativa na nuvem.'}
-                    {exerciseVideoCloudStatus === 'missing_table' && 'Sincronizacao de videos: pendente (falta tabela exercise_videos no Supabase).'}
-                    {exerciseVideoCloudStatus === 'error' && 'Sincronizacao de videos: erro temporario, mantendo local.'}
-                    {exerciseVideoCloudStatus === 'idle' && 'Sincronizacao de videos: aguardando login.'}
-                  </p>
-                )}
-              </form>
-              <div className="video-batch-box">
-                <div className="video-attach-actions">
-                  <button type="button" className="btn-secondary" onClick={() => void handleImportVideosFromExerciseDb()} disabled={rapidApiImporting}>{rapidApiImporting ? 'Sincronizando videos...' : 'Importar videos via RapidAPI'}</button>
-                </div>
-                <p className="demo-query">Busca midias automaticamente no ExerciseDB para preencher os videos da biblioteca.</p>
-                <p className="demo-query">Requer VITE_EXERCISEDB_API_KEY no .env.</p>
-              </div>
-            </details>
-          </div>
-        )}
       </div>
     </div>
   )

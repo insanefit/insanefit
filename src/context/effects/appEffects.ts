@@ -15,13 +15,11 @@ import { hasSupabaseCredentials } from '../../lib/supabase'
 import {
   EXERCISE_VIDEO_MAP_STORAGE_KEY,
   loadAnimaticLibrary,
-  loadBundledExerciseVideoMap,
   loadLocalExerciseVideoMap,
 } from '../../utils/exerciseUtils'
 import { loadProgressHistory, persistProgressHistory } from '../../utils/progressUtils'
 import { workoutToDraft } from '../../utils/workoutProtocol'
 import { flushSyncQueue, getSyncQueueCount } from '../../services/offlineSyncQueue'
-import { cancelIdleTask, scheduleIdleTask } from '../../utils/idle'
 import type { CoachProfile } from '../../types/coach'
 import type { Exercise, StudentPortalData, TrainerData } from '../../types/trainer'
 import type { BillingProfile } from '../../types/billing'
@@ -53,9 +51,6 @@ export const useAnimaticLibraryEffect = (
   useEffect(() => {
     if (!shouldLoadHeavyMedia) return
     let cancelled = false
-    const idleHandle = scheduleIdleTask(() => {
-      void loadBundledExerciseVideoMap()
-    })
     loadAnimaticLibrary().then((merged) => {
       if (!cancelled) {
         setMergedExerciseLibrary(merged)
@@ -63,7 +58,6 @@ export const useAnimaticLibraryEffect = (
     })
     return () => {
       cancelled = true
-      cancelIdleTask(idleHandle)
     }
   }, [setMergedExerciseLibrary, shouldLoadHeavyMedia])
 }

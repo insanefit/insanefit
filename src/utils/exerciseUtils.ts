@@ -1,7 +1,6 @@
 import {
   exerciseLibrary as coreExerciseLibrary,
   getExerciseCoachCue,
-  getExerciseDemoOptions,
   type LibraryExercise,
 } from '../data/exerciseLibrary'
 // exerciseAnimaticLibrary loaded lazily via loadAnimaticLibrary()
@@ -25,7 +24,7 @@ export const createId = (prefix: string): string =>
   `${prefix}-${Math.random().toString(36).slice(2, 8)}-${Date.now().toString(36).slice(-4)}`
 
 // ---------------------------------------------------------------------------
-// Tradução de nomes EN→PT (ExerciseDB)
+// Traducao de nomes EN->PT para exibicao no app
 // ---------------------------------------------------------------------------
 
 const exerciseNameTranslations: Array<[RegExp, string]> = [
@@ -85,7 +84,7 @@ const exerciseNameTranslations: Array<[RegExp, string]> = [
 
 const exerciseDisplayNameCache = new Map<string, string>()
 
-/** Traduz nome em inglês do ExerciseDB para exibição em PT-BR. Usa cache interno. */
+/** Traduz nome em ingles para exibicao em PT-BR. Usa cache interno. */
 export const getExerciseDisplayName = (exerciseName: string): string => {
   const cached = exerciseDisplayNameCache.get(exerciseName)
   if (cached) {
@@ -115,30 +114,9 @@ export const getExerciseDisplayName = (exerciseName: string): string => {
 let _mergedExerciseLibrary: LibraryExercise[] | null = null
 let _animaticData: LibraryExercise[] | null = null
 let _animaticLoading = false
-let _bundledExerciseVideoMap: Record<string, ExerciseVideoAttachment> = {}
-let _bundledVideoMapLoaded = false
-let _bundledVideoMapPromise: Promise<Record<string, ExerciseVideoAttachment>> | null = null
 
 export const loadBundledExerciseVideoMap = async (): Promise<Record<string, ExerciseVideoAttachment>> => {
-  if (_bundledVideoMapLoaded) return _bundledExerciseVideoMap
-  if (_bundledVideoMapPromise) return _bundledVideoMapPromise
-
-  _bundledVideoMapPromise = import('../constants/exerciseVideoMap')
-    .then((mod) => {
-      _bundledExerciseVideoMap = mod.bundledExerciseVideoMap
-      _bundledVideoMapLoaded = true
-      return _bundledExerciseVideoMap
-    })
-    .catch(() => {
-      _bundledExerciseVideoMap = {}
-      _bundledVideoMapLoaded = false
-      return _bundledExerciseVideoMap
-    })
-    .finally(() => {
-      _bundledVideoMapPromise = null
-    })
-
-  return _bundledVideoMapPromise
+  return {}
 }
 
 function rebuildMergedLibrary(animatic: LibraryExercise[]): LibraryExercise[] {
@@ -213,243 +191,20 @@ export const findLibraryExerciseByName = (exerciseName: string): LibraryExercise
   getMergedLibraryByKey().get(normalizeExerciseKey(exerciseName))
 
 // ---------------------------------------------------------------------------
-// Lookup de vídeo por exercício
+// Lookup de media por exercicio
 // ---------------------------------------------------------------------------
 
-const findAttachmentByApproxKey = (
-  key: string,
-  attachmentMap: Record<string, ExerciseVideoAttachment>,
-): ExerciseVideoAttachment | undefined => {
-  const keyTokens = key.split(' ').filter((token) => token.length > 2)
-  if (keyTokens.length === 0) return undefined
-
-  let bestMatch: ExerciseVideoAttachment | undefined
-  let bestScore = 0
-
-  Object.entries(attachmentMap).forEach(([candidateKey, attachment]) => {
-    const candidateTokens = candidateKey.split(' ').filter((token) => token.length > 2)
-    if (candidateTokens.length === 0) return
-    const overlap = keyTokens.filter((token) => candidateTokens.includes(token)).length
-    const score = overlap / Math.max(keyTokens.length, candidateTokens.length)
-    if (score > bestScore) {
-      bestScore = score
-      bestMatch = attachment
-    }
-  })
-
-  return bestScore >= 0.72 ? bestMatch : undefined
-}
-
-const normalizeAttachmentMediaUrl = (rawUrl: string): string =>
-  rawUrl.startsWith('/media/') ? `https://wger.de${rawUrl}` : rawUrl
-
-const normalizeAttachment = (
-  attachment: ExerciseVideoAttachment | undefined,
-): ExerciseVideoAttachment | undefined => {
-  if (!attachment) return undefined
-  const rawUrl = normalizeAttachmentMediaUrl(attachment.rawUrl)
-  const embedUrl = normalizeAttachmentMediaUrl(attachment.embedUrl || rawUrl)
-  if (rawUrl === attachment.rawUrl && embedUrl === attachment.embedUrl) {
-    return attachment
-  }
-  return {
-    ...attachment,
-    rawUrl,
-    embedUrl,
-  }
-}
-
-const youtubeFallbackCache = new Map<string, ExerciseVideoAttachment>()
-
-const isYoutubeUrl = (value: string): boolean => /(youtube\.com|youtu\.be)/i.test(value)
-const buildYoutubeSearchEmbedUrl = (exerciseName: string): string => {
-  const query = `${exerciseName} exercicio execucao correta`
-  return `https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(query)}`
-}
-
-const buildYoutubeFallbackAttachment = (exerciseName: string): ExerciseVideoAttachment | undefined => {
-  const key = normalizeExerciseKey(exerciseName)
-  if (!key) return undefined
-  const cached = youtubeFallbackCache.get(key)
-  if (cached) return cached
-
-  const options = getExerciseDemoOptions(exerciseName)
-  const preferred = options.find((option) => option.source === 'search') ?? options[0]
-  const embedUrl = preferred?.embedUrl?.trim() || buildYoutubeSearchEmbedUrl(exerciseName)
-
-  const attachment: ExerciseVideoAttachment = {
-    rawUrl: embedUrl,
-    embedUrl,
-    licenseLabel: 'YouTube (busca automatica)',
-    notes: preferred?.embedUrl
-      ? 'Fallback automatico via busca no YouTube.'
-      : 'Fallback automatico por URL de busca do YouTube.',
-    updatedAt: 'fallback-youtube',
-  }
-
-  youtubeFallbackCache.set(key, attachment)
-  return attachment
-}
-
-const noAutoVideoExerciseKeys = new Set(
-  [
-    'triceps cruzado na polia',
-    'triceps cruzado polia',
-    'triceps na polia cruzado',
-    'triceps cruzado no cabo',
-  ].map(normalizeExerciseKey),
-)
-
 /**
- * Retorna o attachment de vídeo para um exercício.
- * Prioridade: customMap → bundled → aproximado em cada camada.
+ * Retorna media anexada ao exercicio.
+ * A exibicao de videos foi desativada para evitar midias incorretas.
  */
 export const getExerciseVideoAttachment = (
   exerciseName: string,
   customMap: Record<string, ExerciseVideoAttachment>,
 ): ExerciseVideoAttachment | undefined => {
-  const bundledMap = _bundledExerciseVideoMap
-  const key = normalizeExerciseKey(exerciseName)
-  const exactAttachment = normalizeAttachment(customMap[key] ?? bundledMap[key])
-  if (noAutoVideoExerciseKeys.has(key)) {
-    // Para estes nomes, evita fallback aproximado/genérico que pode mostrar execução errada.
-    return exactAttachment ?? buildYoutubeFallbackAttachment(exerciseName)
-  }
-  const approxAttachment = normalizeAttachment(
-    findAttachmentByApproxKey(key, customMap) ??
-      findAttachmentByApproxKey(key, bundledMap),
-  )
-  const attachment = exactAttachment ?? approxAttachment
-  const youtubeFallback = buildYoutubeFallbackAttachment(exerciseName)
-
-  if (!youtubeFallback) return attachment
-  if (!attachment) return youtubeFallback
-  if (isYoutubeUrl(attachment.rawUrl) || isYoutubeUrl(attachment.embedUrl)) return attachment
-  return youtubeFallback
-}
-
-// ---------------------------------------------------------------------------
-// ExerciseDB — matching de candidatos
-// ---------------------------------------------------------------------------
-
-export type ExerciseDbMatchCandidate = {
-  key: string
-  tokens: string[]
-  tokenSet: Set<string>
-  name: string
-  gifUrl: string
-  bodyPart?: string
-  target?: string
-}
-
-export const toExerciseDbCandidates = (
-  items: Array<{
-    name?: string
-    gifUrl?: string
-    bodyPart?: string
-    target?: string
-  }>,
-): ExerciseDbMatchCandidate[] => {
-  const candidates: ExerciseDbMatchCandidate[] = []
-
-  items.forEach((item) => {
-    const name = item.name?.trim() ?? ''
-    const gifUrl = item.gifUrl?.trim() ?? ''
-    const key = normalizeExerciseKey(name)
-    const tokens = key.split(' ').filter((t) => t.length > 2)
-
-    if (!name || !gifUrl || !key) return
-
-    candidates.push({
-      key,
-      tokens,
-      tokenSet: new Set(tokens),
-      name,
-      gifUrl,
-      bodyPart: item.bodyPart,
-      target: item.target,
-    })
-  })
-
-  return candidates
-}
-
-export const buildExerciseDbCandidateMap = (
-  candidates: ExerciseDbMatchCandidate[],
-): Map<string, ExerciseDbMatchCandidate[]> => {
-  const map = new Map<string, ExerciseDbMatchCandidate[]>()
-
-  candidates.forEach((candidate) => {
-    const bucket = map.get(candidate.key)
-    if (bucket) {
-      bucket.push(candidate)
-    } else {
-      map.set(candidate.key, [candidate])
-    }
-  })
-
-  return map
-}
-
-const pickBestContainsCandidate = (
-  key: string,
-  candidates: ExerciseDbMatchCandidate[],
-): ExerciseDbMatchCandidate | undefined => {
-  let best: ExerciseDbMatchCandidate | undefined
-  let bestDistance = Number.POSITIVE_INFINITY
-
-  candidates.forEach((candidate) => {
-    if (!candidate.key || candidate.key.length < 3) return
-    if (!(key.includes(candidate.key) || candidate.key.includes(key))) return
-
-    const distance = Math.abs(candidate.key.length - key.length)
-    if (distance < bestDistance) {
-      best = candidate
-      bestDistance = distance
-    }
-  })
-
-  return best
-}
-
-const pickBestTokenCandidate = (
-  key: string,
-  candidates: ExerciseDbMatchCandidate[],
-): ExerciseDbMatchCandidate | undefined => {
-  const tokens = key.split(' ').filter((t) => t.length > 2)
-  if (tokens.length === 0) return undefined
-
-  let best: ExerciseDbMatchCandidate | undefined
-  let bestScore = 0
-
-  candidates.forEach((candidate) => {
-    if (candidate.tokens.length === 0) return
-
-    const overlap = tokens.filter((t) => candidate.tokenSet.has(t)).length
-    if (overlap === 0) return
-
-    const score = overlap / Math.max(tokens.length, candidate.tokens.length)
-    if (score > bestScore) {
-      best = candidate
-      bestScore = score
-    }
-  })
-
-  return bestScore >= 0.6 ? best : undefined
-}
-
-export const findExerciseDbCandidateForName = (
-  exerciseName: string,
-  candidateMap: Map<string, ExerciseDbMatchCandidate[]>,
-  allCandidates: ExerciseDbMatchCandidate[],
-): ExerciseDbMatchCandidate | undefined => {
-  const key = normalizeExerciseKey(exerciseName)
-  if (!key) return undefined
-
-  const exact = candidateMap.get(key)?.[0]
-  if (exact) return exact
-
-  return pickBestContainsCandidate(key, allCandidates) ?? pickBestTokenCandidate(key, allCandidates)
+  void exerciseName
+  void customMap
+  return undefined
 }
 
 /** Busca exercício por nome aproximado na biblioteca merged. */
@@ -471,93 +226,6 @@ export const findExerciseByApproxName = (rawName: string): LibraryExercise | und
 
 // Re-export para uso interno dos hooks
 export { getExerciseCoachCue }
-
-// ---------------------------------------------------------------------------
-// ExerciseDB API
-// ---------------------------------------------------------------------------
-
-type ExerciseDbApiExercise = {
-  id?: string | number
-  name?: string
-  bodyPart?: string
-  target?: string
-  equipment?: string
-  gifUrl?: string
-}
-
-const EXERCISEDB_DEFAULT_HOST = 'exercisedb.p.rapidapi.com'
-
-export const getExerciseDbConfig = () => {
-  const apiKey = (import.meta.env.VITE_EXERCISEDB_API_KEY as string | undefined)?.trim()
-  const hostEnv = (import.meta.env.VITE_EXERCISEDB_API_HOST as string | undefined)?.trim()
-  const host = (hostEnv || EXERCISEDB_DEFAULT_HOST).replace(/^https?:\/\//i, '').replace(/\/+$/, '')
-
-  if (!apiKey || !host) {
-    return null
-  }
-
-  return {
-    apiKey,
-    host,
-    baseUrl: `https://${host}`,
-  }
-}
-
-const getResponsePayloadAsExercises = (payload: unknown): ExerciseDbApiExercise[] => {
-  if (Array.isArray(payload)) {
-    return payload as ExerciseDbApiExercise[]
-  }
-
-  if (payload && typeof payload === 'object') {
-    const maybeObject = payload as Record<string, unknown>
-    const nestedArrayKeys = ['data', 'exercises', 'results']
-    for (const key of nestedArrayKeys) {
-      const nestedValue = maybeObject[key]
-      if (Array.isArray(nestedValue)) {
-        return nestedValue as ExerciseDbApiExercise[]
-      }
-    }
-  }
-
-  return []
-}
-
-export const fetchExerciseDbCatalog = async (
-  config: ReturnType<typeof getExerciseDbConfig>,
-): Promise<ExerciseDbApiExercise[]> => {
-  if (!config) {
-    return []
-  }
-
-  const endpoints = ['/exercises?limit=0&offset=0', '/exercises?limit=2000&offset=0', '/exercises']
-  let lastErrorMessage = ''
-
-  for (const endpoint of endpoints) {
-    const response = await fetch(`${config.baseUrl}${endpoint}`, {
-      method: 'GET',
-      headers: {
-        'X-RapidAPI-Key': config.apiKey,
-        'X-RapidAPI-Host': config.host,
-      },
-    })
-
-    if (!response.ok) {
-      lastErrorMessage = `HTTP ${response.status}`
-      if (response.status === 401 || response.status === 403) {
-        break
-      }
-      continue
-    }
-
-    const payload = await response.json().catch(() => null)
-    const exercises = getResponsePayloadAsExercises(payload)
-    if (exercises.length > 0) {
-      return exercises
-    }
-  }
-
-  throw new Error(lastErrorMessage || 'Falha ao consultar o catalogo do ExerciseDB.')
-}
 
 // ---------------------------------------------------------------------------
 // General helpers

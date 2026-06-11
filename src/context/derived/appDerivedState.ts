@@ -206,6 +206,7 @@ export const useExerciseDemoDerivedState = ({
     const source = findLibraryExerciseByName(effectiveExercise.name)
     const attachment = getExerciseVideoAttachment(effectiveExercise.name, exerciseVideoMap)
     const options = buildDemoOptionsForExercise(effectiveExercise.name, source?.muscleGroup, attachment)
+    if (options.length === 0) return null
     const activeOption = options[Math.min(studentDemoModelIndex, Math.max(options.length - 1, 0))]
 
     return { exerciseName: effectiveExercise.name, options, activeOption }
