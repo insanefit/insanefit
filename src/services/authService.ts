@@ -32,7 +32,51 @@ const mapSupabaseAuthMessage = (rawMessage: string): string => {
     return 'Muitas tentativas em pouco tempo. Aguarde um minuto e tente novamente.'
   }
 
+  if (
+    message.includes('failed to fetch') ||
+    message.includes('network') ||
+    message.includes('timeout') ||
+    message.includes('load failed')
+  ) {
+    return 'Nao foi possivel conectar ao login agora. Limpe o cache do navegador ou tente novamente em alguns segundos.'
+  }
+
   return rawMessage
+}
+
+const mapUnexpectedAuthError = (error: unknown): { ok: false; message: string } => {
+  const message = error instanceof Error ? error.message : String(error)
+  const normalized = message.toLowerCase()
+
+  if (
+    normalized.includes('failed to fetch') ||
+    normalized.includes('network') ||
+    normalized.includes('timeout') ||
+    normalized.includes('load failed')
+  ) {
+    return {
+      ok: false,
+      message:
+        'Nao foi possivel conectar ao login agora. Limpe o cache do navegador ou tente novamente em alguns segundos.',
+    }
+  }
+
+  return { ok: false, message: mapSupabaseAuthMessage(message) }
+}
+
+const withAuthTimeout = async <T,>(operation: Promise<T>, timeoutMs = 12000): Promise<T> => {
+  let timeoutId: ReturnType<typeof setTimeout> | undefined
+
+  try {
+    return await Promise.race([
+      operation,
+      new Promise<never>((_, reject) => {
+        timeoutId = setTimeout(() => reject(new Error('auth timeout')), timeoutMs)
+      }),
+    ])
+  } finally {
+    if (timeoutId) clearTimeout(timeoutId)
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -44,8 +88,12 @@ export const getCurrentUser = async (): Promise<User | null> => {
     return null
   }
 
-  const { data } = await supabase.auth.getUser()
-  return data.user ?? null
+  try {
+    const { data } = await withAuthTimeout(supabase.auth.getUser(), 8000)
+    return data.user ?? null
+  } catch {
+    return null
+  }
 }
 
 export const subscribeAuthState = (
@@ -67,10 +115,14 @@ export const signIn = async (email: string, password: string): Promise<{ ok: boo
     return { ok: false, message: 'Supabase nao configurado no projeto.' }
   }
 
-  const { error } = await supabase.auth.signInWithPassword({ email, password })
+  try {
+    const { error } = await withAuthTimeout(supabase.auth.signInWithPassword({ email, password }))
 
-  if (error) {
-    return { ok: false, message: mapSupabaseAuthMessage(error.message) }
+    if (error) {
+      return { ok: false, message: mapSupabaseAuthMessage(error.message) }
+    }
+  } catch (error) {
+    return mapUnexpectedAuthError(error)
   }
 
   return { ok: true, message: 'Login realizado com sucesso.' }
@@ -81,18 +133,22 @@ export const signUp = async (email: string, password: string): Promise<{ ok: boo
     return { ok: false, message: 'Supabase nao configurado no projeto.' }
   }
 
-  const { data, error } = await supabase.auth.signUp({ email, password })
+  try {
+    const { data, error } = await withAuthTimeout(supabase.auth.signUp({ email, password }))
 
-  if (error) {
-    return { ok: false, message: mapSupabaseAuthMessage(error.message) }
-  }
-
-  if (!data.session) {
-    return {
-      ok: true,
-      message:
-        'Conta criada. Verifique seu email para confirmar antes de entrar.',
+    if (error) {
+      return { ok: false, message: mapSupabaseAuthMessage(error.message) }
     }
+
+    if (!data.session) {
+      return {
+        ok: true,
+        message:
+          'Conta criada. Verifique seu email para confirmar antes de entrar.',
+      }
+    }
+  } catch (error) {
+    return mapUnexpectedAuthError(error)
   }
 
   return { ok: true, message: 'Conta criada e login feito com sucesso.' }
@@ -103,13 +159,17 @@ export const resendSignupConfirmation = async (email: string): Promise<{ ok: boo
     return { ok: false, message: 'Supabase nao configurado no projeto.' }
   }
 
-  const { error } = await supabase.auth.resend({
-    type: 'signup',
-    email,
-  })
+  try {
+    const { error } = await withAuthTimeout(supabase.auth.resend({
+      type: 'signup',
+      email,
+    }))
 
-  if (error) {
-    return { ok: false, message: mapSupabaseAuthMessage(error.message) }
+    if (error) {
+      return { ok: false, message: mapSupabaseAuthMessage(error.message) }
+    }
+  } catch (error) {
+    return mapUnexpectedAuthError(error)
   }
 
   return { ok: true, message: 'Email de confirmacao reenviado. Confira caixa de entrada e spam.' }
@@ -120,17 +180,21 @@ export const sendPasswordReset = async (email: string): Promise<{ ok: boolean; m
     return { ok: false, message: 'Supabase nao configurado no projeto.' }
   }
 
-  const redirectTo = `${window.location.origin}/`
-  let { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo })
+  try {
+    const redirectTo = `${window.location.origin}/`
+    let { error } = await withAuthTimeout(supabase.auth.resetPasswordForEmail(email, { redirectTo }))
 
-  // Fallback para casos em que o dominio atual nao esta permitido no redirect.
-  if (error && error.message.toLowerCase().includes('redirect')) {
-    const fallback = await supabase.auth.resetPasswordForEmail(email)
-    error = fallback.error
-  }
+    // Fallback para casos em que o dominio atual nao esta permitido no redirect.
+    if (error && error.message.toLowerCase().includes('redirect')) {
+      const fallback = await withAuthTimeout(supabase.auth.resetPasswordForEmail(email))
+      error = fallback.error
+    }
 
-  if (error) {
-    return { ok: false, message: mapSupabaseAuthMessage(error.message) }
+    if (error) {
+      return { ok: false, message: mapSupabaseAuthMessage(error.message) }
+    }
+  } catch (error) {
+    return mapUnexpectedAuthError(error)
   }
 
   return { ok: true, message: 'Link de recuperacao enviado para seu email.' }
@@ -141,10 +205,14 @@ export const updateUserPassword = async (password: string): Promise<{ ok: boolea
     return { ok: false, message: 'Supabase nao configurado no projeto.' }
   }
 
-  const { error } = await supabase.auth.updateUser({ password })
+  try {
+    const { error } = await withAuthTimeout(supabase.auth.updateUser({ password }))
 
-  if (error) {
-    return { ok: false, message: mapSupabaseAuthMessage(error.message) }
+    if (error) {
+      return { ok: false, message: mapSupabaseAuthMessage(error.message) }
+    }
+  } catch (error) {
+    return mapUnexpectedAuthError(error)
   }
 
   return { ok: true, message: 'Senha redefinida com sucesso.' }

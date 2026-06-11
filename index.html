@@ -13,6 +13,32 @@
     <meta name="apple-mobile-web-app-title" content="Insane Fit" />
     <meta name="format-detection" content="telephone=no" />
     <title>Insane Fit</title>
+    <script>
+      ;(() => {
+        const params = new URLSearchParams(window.location.search)
+        if (params.get('reset') !== 'cache') return
+
+        const clearCache = async () => {
+          try {
+            if ('serviceWorker' in navigator) {
+              const registrations = await navigator.serviceWorker.getRegistrations()
+              await Promise.all(registrations.map((registration) => registration.unregister()))
+            }
+            if ('caches' in window) {
+              const keys = await window.caches.keys()
+              await Promise.all(keys.map((key) => window.caches.delete(key)))
+            }
+            window.localStorage?.removeItem('insanefit_auth_audience')
+          } catch {
+            // If browser cache APIs fail, still reload without the reset flag.
+          } finally {
+            window.location.replace(window.location.origin + window.location.pathname)
+          }
+        }
+
+        clearCache()
+      })()
+    </script>
   </head>
   <body>
     <div id="root"></div>
