@@ -18,7 +18,7 @@ describe('AppErrorBoundary', () => {
     )
 
     expect(screen.getByText('Algo saiu do controle')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Recarregar app' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Limpar cache e recarregar' })).toBeInTheDocument()
     errorSpy.mockRestore()
   })
 })

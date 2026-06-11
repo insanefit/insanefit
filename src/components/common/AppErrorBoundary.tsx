@@ -22,7 +22,7 @@ export class AppErrorBoundary extends Component<AppErrorBoundaryProps, AppErrorB
   }
 
   private handleReload = () => {
-    window.location.reload()
+    window.location.assign('/?reset=cache')
   }
 
   render() {
@@ -52,7 +52,8 @@ export class AppErrorBoundary extends Component<AppErrorBoundaryProps, AppErrorB
         >
           <h1 style={{ margin: 0, fontSize: '1.4rem', letterSpacing: '0.03em' }}>Algo saiu do controle</h1>
           <p style={{ marginTop: '12px', lineHeight: 1.5, color: '#cbd5e1' }}>
-            O app encontrou um erro inesperado. Seus dados locais permanecem salvos. Recarregue para continuar.
+            O app encontrou um erro inesperado. Seus dados locais permanecem salvos. Limpe o cache do app para
+            continuar.
           </p>
           <button
             type="button"
@@ -68,11 +69,10 @@ export class AppErrorBoundary extends Component<AppErrorBoundaryProps, AppErrorB
               cursor: 'pointer',
             }}
           >
-            Recarregar app
+            Limpar cache e recarregar
           </button>
         </section>
       </main>
     )
   }
 }
-
