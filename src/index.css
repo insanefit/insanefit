@@ -2357,6 +2357,28 @@ select:focus-visible {
   text-decoration: underline;
 }
 
+.library-video-preview {
+  border: 1px solid #2c3340;
+  border-radius: 10px;
+  background: #181f2a;
+  padding: 0.45rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #ffcad2;
+  font-size: 0.74rem;
+  font-weight: 700;
+}
+
+.library-video-preview img {
+  width: 88px;
+  height: 50px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid #313945;
+  background: #0a0d12;
+}
+
 .video-attach-form {
   border: 1px solid #2c3340;
   border-radius: 10px;

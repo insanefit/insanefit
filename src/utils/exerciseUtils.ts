@@ -194,18 +194,11 @@ export const findLibraryExerciseByName = (exerciseName: string): LibraryExercise
 // Lookup de media por exercicio
 // ---------------------------------------------------------------------------
 
-/**
- * Retorna media anexada ao exercicio.
- * A exibicao de videos foi desativada para evitar midias incorretas.
- */
+/** Retorna somente a midia manual configurada pelo personal. */
 export const getExerciseVideoAttachment = (
   exerciseName: string,
   customMap: Record<string, ExerciseVideoAttachment>,
-): ExerciseVideoAttachment | undefined => {
-  void exerciseName
-  void customMap
-  return undefined
-}
+): ExerciseVideoAttachment | undefined => customMap[normalizeExerciseKey(exerciseName)]
 
 /** Busca exercício por nome aproximado na biblioteca merged. */
 export const findExerciseByApproxName = (rawName: string): LibraryExercise | undefined => {

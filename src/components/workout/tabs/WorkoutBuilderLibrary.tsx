@@ -4,6 +4,7 @@ import type { ExerciseVideoAttachment, ExerciseVideoCloudStatus, DemoViewerOptio
 import type { WorkoutDraftItem } from '../../../types/workout'
 import type { WorkoutTemplate } from '../../../constants/workoutTemplates'
 import type { VideoAttachmentFormState } from '../../../context/appContextStore'
+import { getExerciseVideoAttachment } from '../../../utils/exerciseUtils'
 
 export type WorkoutBuilderLibraryProps = {
   workoutDraft: WorkoutDraftItem[]
@@ -82,15 +83,19 @@ export function WorkoutBuilderLibrary(props: WorkoutBuilderLibraryProps) {
     categoryFilter, setCategoryFilter, equipmentFilter, setEquipmentFilter,
     difficultyFilter, setDifficultyFilter, sourceFilter, setSourceFilter,
     filteredExercises, quickAddExercises, categoryOptions, equipmentOptions, sourceSummary,
+    demoExercise, activeDemoOption, videoAttachmentForm, setVideoAttachmentForm,
+    exerciseVideoCloudStatus, exerciseVideoMap,
+    handleSaveVideoAttachment, handleRemoveVideoAttachment,
     handleAddExerciseToDraft, handleQuickAddExercise, handleApplyWorkoutTemplate,
     quickAddExerciseName, setQuickAddExerciseName,
     libraryTab, setLibraryTab, setLibraryPage,
     showAdvancedLibraryTools, setShowAdvancedLibraryTools,
     activeDraftDay, activeDraftRoutine, draftNameKeys, draftMatchCount,
     totalLibraryPages, safeLibraryPage, visibleLibraryExercises, visiblePages,
-    handleClearLibraryFilters, handleOpenManualCreate,
+    handleClearLibraryFilters, handleOpenManualCreate, handleEditExerciseVideo,
+    extractYoutubeVideoId, buildYoutubeThumbUrl,
     muscleGroups, mergedExerciseLibrary, workoutTemplates,
-    getExerciseDisplayName, libraryExercises,
+    getExerciseDisplayName, renderDemoMedia, libraryExercises,
   } = props
 
   return (
@@ -205,6 +210,7 @@ export function WorkoutBuilderLibrary(props: WorkoutBuilderLibraryProps) {
         <div className="library-list compact-list">
           {visibleLibraryExercises.map((exercise) => {
             const alreadyInDraft = draftNameKeys.has(exercise.name.trim().toLowerCase())
+            const manualVideo = getExerciseVideoAttachment(exercise.name, exerciseVideoMap)
             return (
               <article key={exercise.id} className="library-item mfit-card">
                 <div className="library-thumb library-thumb-static" aria-hidden="true">
@@ -219,6 +225,10 @@ export function WorkoutBuilderLibrary(props: WorkoutBuilderLibraryProps) {
                   <span>{exercise.equipment}</span>
                 </div>
                 <div className="library-actions">
+                  {manualVideo && <span className="library-video-tag">Video</span>}
+                  <button type="button" className="btn-secondary" onClick={() => handleEditExerciseVideo(exercise)}>
+                    {manualVideo ? 'Editar video' : 'Add video'}
+                  </button>
                   <button type="button" className={alreadyInDraft ? 'btn-secondary' : 'btn-primary'} onClick={() => handleAddExerciseToDraft(exercise, activeDraftDay, activeDraftRoutine)} disabled={alreadyInDraft}>{alreadyInDraft ? 'Adicionado' : 'Adicionar'}</button>
                 </div>
               </article>
@@ -232,6 +242,89 @@ export function WorkoutBuilderLibrary(props: WorkoutBuilderLibraryProps) {
             <button type="button" className="tab-chip" onClick={() => setLibraryPage((current) => Math.max(1, Math.min(current, totalLibraryPages) - 1))} disabled={safeLibraryPage === 1}>{'<'}</button>
             {visiblePages.map((page) => (<button key={`page-${page}`} type="button" className={safeLibraryPage === page ? 'tab-chip active' : 'tab-chip'} onClick={() => setLibraryPage(page)}>{page}</button>))}
             <button type="button" className="tab-chip" onClick={() => setLibraryPage((current) => Math.min(totalLibraryPages, Math.min(current, totalLibraryPages) + 1))} disabled={safeLibraryPage === totalLibraryPages}>{'>'}</button>
+          </div>
+        )}
+
+        {demoExercise && (
+          <div className="demo-viewer">
+            <div className="demo-head">
+              <div>
+                <strong>Video manual</strong>
+                <p className="demo-query">{getExerciseDisplayName(demoExercise.name)}</p>
+              </div>
+              <span>
+                {exerciseVideoCloudStatus === 'ready'
+                  ? 'Sincronizado'
+                  : exerciseVideoCloudStatus === 'missing_table'
+                    ? 'Local'
+                    : 'Opcional'}
+              </span>
+            </div>
+
+            {activeDemoOption ? (
+              <>
+                {renderDemoMedia(activeDemoOption, `Video ${getExerciseDisplayName(demoExercise.name)}`)}
+                {activeDemoOption.rawUrl && (
+                  <a className="demo-link" href={activeDemoOption.rawUrl} target="_blank" rel="noreferrer">
+                    Abrir link original
+                  </a>
+                )}
+              </>
+            ) : (
+              <p className="empty-line">Nenhum video configurado para este exercicio.</p>
+            )}
+
+            {videoAttachmentForm.rawUrl && extractYoutubeVideoId(videoAttachmentForm.rawUrl) && (
+              <div className="library-video-preview">
+                <img
+                  src={buildYoutubeThumbUrl(extractYoutubeVideoId(videoAttachmentForm.rawUrl) ?? '')}
+                  alt=""
+                  loading="lazy"
+                />
+                <span>Preview do YouTube</span>
+              </div>
+            )}
+
+            <form className="video-attach-form" onSubmit={(event) => { void handleSaveVideoAttachment(event) }}>
+              <label className="field-label" htmlFor="manual-video-url">Link do YouTube / Shorts</label>
+              <input
+                id="manual-video-url"
+                className="field-input"
+                value={videoAttachmentForm.rawUrl}
+                onChange={(event) => setVideoAttachmentForm((current) => ({ ...current, rawUrl: event.target.value }))}
+                placeholder="Ex: https://www.youtube.com/shorts/hlV6f0kHmeo"
+              />
+              <div className="video-attach-grid">
+                <div>
+                  <label className="field-label" htmlFor="manual-video-source">Fonte/canal</label>
+                  <input
+                    id="manual-video-source"
+                    className="field-input"
+                    value={videoAttachmentForm.licenseLabel}
+                    onChange={(event) => setVideoAttachmentForm((current) => ({ ...current, licenseLabel: event.target.value }))}
+                    placeholder="Ex: Canal do YouTube"
+                  />
+                </div>
+                <div>
+                  <label className="field-label" htmlFor="manual-video-notes">Observacao</label>
+                  <input
+                    id="manual-video-notes"
+                    className="field-input"
+                    value={videoAttachmentForm.notes}
+                    onChange={(event) => setVideoAttachmentForm((current) => ({ ...current, notes: event.target.value }))}
+                    placeholder="Ex: execucao correta"
+                  />
+                </div>
+              </div>
+              <div className="video-attach-actions">
+                <button type="button" className="btn-secondary" onClick={() => { void handleRemoveVideoAttachment() }}>
+                  Remover video
+                </button>
+                <button type="submit" className="btn-primary">
+                  Salvar video
+                </button>
+              </div>
+            </form>
           </div>
         )}
 
