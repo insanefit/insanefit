@@ -43,9 +43,19 @@ export const normalizeWorkoutRoutine = (value: string): string => {
   return cleaned.slice(0, 12)
 }
 
+export const normalizeWorkoutRoutineLabel = (value: string): string =>
+  value.replace(/\s+/g, ' ').trim().slice(0, 70)
+
+export const formatWorkoutRoutineName = (routine: string, label?: string): string => {
+  const normalizedRoutine = normalizeWorkoutRoutine(routine)
+  const normalizedLabel = normalizeWorkoutRoutineLabel(label ?? '')
+  return normalizedLabel ? `Treino ${normalizedRoutine} - ${normalizedLabel}` : `Treino ${normalizedRoutine}`
+}
+
 export const createDefaultProtocol = (muscleGroup: string) => ({
   day: '',
   routine: 'A',
+  routineLabel: '',
   warmup: '50%x15, 65%x10',
   feederSets: '1',
   feederReps: '6-8',
@@ -286,6 +296,16 @@ export const parseWorkoutProtocolFromExercise = (
       return
     }
 
+    if (
+      lower.startsWith('routine-label:') ||
+      lower.startsWith('rotina-label:') ||
+      lower.startsWith('nome-treino:') ||
+      lower.startsWith('foco:')
+    ) {
+      protocol.routineLabel = normalizeWorkoutRoutineLabel(segmentValue)
+      return
+    }
+
     freeNotes.push(segment)
   })
 
@@ -313,9 +333,15 @@ export const getExerciseRestPreset = (exercise: Exercise): string => {
   return parseLegacyRestAndNote(exercise.note).rest
 }
 
+export const extractWorkoutRoutineLabelFromNote = (note: string): string => {
+  const match = note.match(/\b(?:routine-label|rotina-label|nome-treino|foco):\s*([^|]+)/i)
+  return normalizeWorkoutRoutineLabel(match?.[1] ?? '')
+}
+
 export const buildWorkoutNote = (item: WorkoutDraftItem): string => {
   const day = normalizeWorkoutDay(item.day)
   const routine = normalizeWorkoutRoutine(item.routine)
+  const routineLabel = normalizeWorkoutRoutineLabel(item.routineLabel ?? '')
   const warmup = item.warmup.trim() || '50%x15, 65%x10'
   const feederSets = item.feederSets.trim() || '1'
   const feederReps = item.feederReps.trim() || '6-8'
@@ -334,6 +360,7 @@ export const buildWorkoutNote = (item: WorkoutDraftItem): string => {
 
   const parts = [
     routine ? `Routine: ${routine}` : '',
+    routineLabel ? `RoutineLabel: ${routineLabel}` : '',
     day ? `Day: ${day}` : '',
     `Warm: ${warmup}`,
     `Feeder: ${feederSets}x${feederReps} @ RPE ${feederRpe}`,
@@ -367,6 +394,7 @@ export const workoutToDraft = (studentId: string, workout: Exercise[]): WorkoutD
       name: exercise.name,
       day: normalizeWorkoutDay(exercise.day ?? parsedProtocol.day),
       routine: normalizeWorkoutRoutine(exercise.routine ?? parsedProtocol.routine),
+      routineLabel: parsedProtocol.routineLabel,
       muscleGroup,
       category: source?.category ?? 'Personalizado',
       equipment: source?.equipment ?? 'Livre',

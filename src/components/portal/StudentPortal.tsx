@@ -9,7 +9,12 @@ import {
 } from '../../context/appContextStore'
 import { RestTimer } from '../timer/RestTimer'
 import { getExerciseVideoAttachment } from '../../utils/exerciseUtils'
-import { normalizeWorkoutDay, normalizeWorkoutRoutine } from '../../utils/workoutProtocol'
+import {
+  extractWorkoutRoutineLabelFromNote,
+  formatWorkoutRoutineName,
+  normalizeWorkoutDay,
+  normalizeWorkoutRoutine,
+} from '../../utils/workoutProtocol'
 import { readOfflineJson, writeOfflineJson } from '../../lib/offlineStore'
 import type {
   ExerciseSeriesStep,
@@ -367,6 +372,18 @@ export function StudentPortal() {
 
   const [studentTab, setStudentTab] = useState<'inicio' | 'treino' | 'agenda' | 'historico' | 'progresso'>('inicio')
   const [selectedRoutineDay, setSelectedRoutineDay] = useState('')
+  const workoutRoutineLabelByDay = useMemo(() => {
+    const labels = new Map<string, string>()
+    ;(studentPortal?.workout ?? []).forEach((exercise) => {
+      const day = normalizeWorkoutDay(exercise.day ?? '') || extractWorkoutDayFromNote(exercise.note)
+      const label = extractWorkoutRoutineLabelFromNote(exercise.note)
+      if (day && label && !labels.has(day)) {
+        labels.set(day, label)
+      }
+    })
+    return labels
+  }, [studentPortal?.workout])
+
   const sessionByDay = useMemo(
     () =>
       weekDays
@@ -374,16 +391,17 @@ export function StudentPortal() {
           const sessions = (studentPortal?.sessions ?? []).filter((session) => session.day === day)
           const doneCount = sessions.filter((session) => doneSessions.includes(session.id)).length
           const focusLabel = Array.from(new Set(sessions.map((session) => session.focus.trim()).filter(Boolean))).join(' • ')
+          const workoutLabel = workoutRoutineLabelByDay.get(day)
           return {
             day,
             sessions,
             doneCount,
             totalCount: sessions.length,
-            focusLabel: focusLabel || 'Treino personalizado',
+            focusLabel: focusLabel || workoutLabel || 'Treino personalizado',
           }
         })
         .filter((item) => item.totalCount > 0),
-    [doneSessions, studentPortal?.sessions, weekDays],
+    [doneSessions, studentPortal?.sessions, weekDays, workoutRoutineLabelByDay],
   )
 
   const studentName = studentPortal?.student.name ?? ''
@@ -403,6 +421,10 @@ export function StudentPortal() {
       return !exerciseDay || exerciseDay === targetRoutineDay
     })
     : allWorkout
+  const activeWorkoutRoutineLabel =
+    activeRoutineWorkout
+      .map((exercise) => extractWorkoutRoutineLabelFromNote(exercise.note))
+      .find(Boolean) ?? ''
   const activeStudentVideoExerciseName =
     studentVideoExerciseName || activeRoutineWorkout[0]?.name || studentPortal?.workout[0]?.name || ''
   const portalAccess = getPortalAccessState(studentPortal?.student.accessEndDate)
@@ -657,7 +679,7 @@ export function StudentPortal() {
               <div className="panel-head">
                 <div>
                   <h3>Treino {activeRoutine?.day ?? ''}</h3>
-                  <p>{activeRoutine?.focusLabel ?? 'Prescrição atualizada pelo personal'}</p>
+                  <p>{activeWorkoutRoutineLabel || (activeRoutine?.focusLabel ?? 'Prescrição atualizada pelo personal')}</p>
                 </div>
                 <div className="student-workout-head-actions">
                   <button
@@ -710,6 +732,10 @@ export function StudentPortal() {
                   const exerciseRoutine = normalizeWorkoutRoutine(
                     exercise.routine ?? extractWorkoutRoutineFromNote(exercise.note),
                   )
+                  const exerciseRoutineName = formatWorkoutRoutineName(
+                    exerciseRoutine,
+                    protocol.routineLabel || extractWorkoutRoutineLabelFromNote(exercise.note),
+                  )
                   const restPreset = getExerciseRestPreset(exercise)
                   const workSummary = `${protocol.workSets} séries de ${protocol.workReps} repetições (${formatEffortHint(protocol.workRpe)})`
                   const feederSummary = `${protocol.feederSets} séries de preparação com ${protocol.feederReps} repetições (${formatEffortHint(protocol.feederRpe)})`
@@ -760,7 +786,7 @@ export function StudentPortal() {
                           <p className="exercise-head-kicker">Exercício {exerciseIndex + 1}</p>
                           <strong>{getExerciseDisplayName(exercise.name)}</strong>
                           <span className="exercise-head-meta">
-                            Treino {exerciseRoutine} • {source?.muscleGroup ?? 'Funcional'} - {source?.equipment ?? 'Livre'}
+                            {exerciseRoutineName} • {source?.muscleGroup ?? 'Funcional'} - {source?.equipment ?? 'Livre'}
                           </span>
                           <p className="exercise-head-note">{protocol.note || 'Sem observação do personal.'}</p>
                         </div>

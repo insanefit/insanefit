@@ -1,7 +1,12 @@
 import { useMemo, useState } from 'react'
 import type { Dispatch, FormEvent, SetStateAction } from 'react'
 import { getExerciseVideoAttachment } from '../../../utils/exerciseUtils'
-import { normalizeWorkoutDay, normalizeWorkoutRoutine } from '../../../utils/workoutProtocol'
+import {
+  formatWorkoutRoutineName,
+  normalizeWorkoutDay,
+  normalizeWorkoutRoutine,
+  normalizeWorkoutRoutineLabel,
+} from '../../../utils/workoutProtocol'
 import type { WorkoutDraftItem} from '../../../types/workout'
 import type { LibraryExercise } from '../../../data/exerciseLibrary'
 
@@ -55,6 +60,9 @@ export type WorkoutBuilderLocalState = {
   setDuplicateTargetRoutine: (value: string) => void
   studentAvailableDays: string[]
   studentRoutineOptions: string[]
+  activeDraftRoutineLabel: string
+  getRoutineDisplayName: (routine: string) => string
+  handleUpdateRoutineLabel: (value: string) => void
   draftNameKeys: Set<string>
   libraryExercises: LibraryExercise[]
   videoEnabledCount: number
@@ -90,7 +98,7 @@ export function useWorkoutBuilderState(context: {
   setVideoAttachmentForm: Dispatch<SetStateAction<VideoAttachmentFormState>>
   handleOpenExerciseDemo: (exercise: LibraryExercise) => void
   handleSaveWorkoutDraft: () => Promise<void>
-  handleAddManualExercise: (event: FormEvent<HTMLFormElement>, day?: string, routine?: string) => void
+  handleAddManualExercise: (event: FormEvent<HTMLFormElement>, day?: string, routine?: string, routineLabel?: string) => void
   manualExerciseForm: { name: string }
   editingDraftExerciseId: string | null
   setEditingDraftExerciseId: (value: string | null | ((current: string | null) => string | null)) => void
@@ -114,6 +122,7 @@ export function useWorkoutBuilderState(context: {
   const [draftRoutineFilterChoice, setDraftRoutineFilterChoice] = useState<'Todos' | string>('Todos')
   const [duplicateSourceRoutine, setDuplicateSourceRoutine] = useState('A')
   const [duplicateTargetRoutine, setDuplicateTargetRoutine] = useState('B')
+  const [routineLabelOverrides, setRoutineLabelOverrides] = useState<Record<string, string>>({})
   const libraryPageSize = 10
 
   const studentAvailableDays = useMemo(() => {
@@ -138,6 +147,40 @@ export function useWorkoutBuilderState(context: {
   }, [workoutDraft])
 
   const activeDraftRoutine = studentRoutineOptions.find((r) => r === normalizeWorkoutRoutine(activeDraftRoutineChoice)) ?? 'A'
+
+  const routineLabelMap = useMemo(() => {
+    const draftLabels = workoutDraft.reduce<Record<string, string>>((acc, item) => {
+      const key = normalizeWorkoutRoutine(item.routine)
+      const label = normalizeWorkoutRoutineLabel(item.routineLabel ?? '')
+      if (key && label && !acc[key]) acc[key] = label
+      return acc
+    }, {})
+
+    return { ...draftLabels, ...routineLabelOverrides }
+  }, [routineLabelOverrides, workoutDraft])
+
+  const activeDraftRoutineLabel = routineLabelMap[activeDraftRoutine] ?? ''
+
+  const getRoutineDisplayName = (routine: string): string => {
+    const key = normalizeWorkoutRoutine(routine)
+    return formatWorkoutRoutineName(key, routineLabelMap[key])
+  }
+
+  const handleUpdateRoutineLabel = (value: string) => {
+    const label = normalizeWorkoutRoutineLabel(value)
+    const routine = activeDraftRoutine
+
+    setRoutineLabelOverrides((current) => ({
+      ...current,
+      [routine]: label,
+    }))
+
+    setWorkoutDraft((current) =>
+      current.map((item) =>
+        normalizeWorkoutRoutine(item.routine) === routine ? { ...item, routineLabel: label } : item,
+      ),
+    )
+  }
 
   const draftDayFilter = draftDayFilterChoice === 'Todos' || studentAvailableDays.some((d) => d === draftDayFilterChoice) ? draftDayFilterChoice : 'Todos'
 
@@ -183,7 +226,13 @@ export function useWorkoutBuilderState(context: {
     const now = Date.now()
     setWorkoutDraft((current) => {
       const withoutTarget = current.filter((item) => normalizeWorkoutRoutine(item.routine) !== targetRoutine)
-      const duplicatedItems = sourceItems.map((item, index) => ({ ...item, id: `${item.id}-dup-${targetRoutine}-${now}-${index}`, routine: targetRoutine }))
+      const targetRoutineLabel = routineLabelMap[targetRoutine] ?? ''
+      const duplicatedItems = sourceItems.map((item, index) => ({
+        ...item,
+        id: `${item.id}-dup-${targetRoutine}-${now}-${index}`,
+        routine: targetRoutine,
+        routineLabel: targetRoutineLabel,
+      }))
       return [...withoutTarget, ...duplicatedItems]
     })
     setActiveDraftRoutineChoice(targetRoutine)
@@ -222,7 +271,7 @@ export function useWorkoutBuilderState(context: {
 
   const handleSubmitManualCreate = (event: FormEvent<HTMLFormElement>) => {
     const hasName = manualExerciseForm.name.trim().length > 0
-    handleAddManualExercise(event, activeDraftDay, activeDraftRoutine)
+    handleAddManualExercise(event, activeDraftDay, activeDraftRoutine, activeDraftRoutineLabel)
     if (hasName) setShowManualCreateForm(false)
   }
 
@@ -268,6 +317,7 @@ export function useWorkoutBuilderState(context: {
     duplicateSourceRoutine, setDuplicateSourceRoutine,
     duplicateTargetRoutine, setDuplicateTargetRoutine,
     studentAvailableDays, studentRoutineOptions,
+    activeDraftRoutineLabel, getRoutineDisplayName, handleUpdateRoutineLabel,
     draftNameKeys, libraryExercises, videoEnabledCount, draftMatchCount, filteredDraft,
     totalLibraryPages, safeLibraryPage, visibleLibraryExercises, visiblePages,
     handleDuplicateRoutine, handleClearLibraryFilters, handleOpenManualCreate,

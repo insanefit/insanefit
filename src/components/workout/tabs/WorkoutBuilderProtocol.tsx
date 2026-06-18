@@ -21,6 +21,7 @@ export type WorkoutBuilderProtocolProps = {
   setManualExerciseForm: Dispatch<SetStateAction<ManualExerciseFormState>>
   activeDraftDay: string
   activeDraftRoutine: string
+  activeDraftRoutineLabel: string
   studentAvailableDays: string[]
   studentRoutineOptions: string[]
   collapsedDraftExerciseIds: string[]
@@ -32,6 +33,7 @@ export type WorkoutBuilderProtocolProps = {
   runFinalizeWorkout: (advanceToNextDay: boolean) => Promise<void>
   syncMessage: string
   getExerciseDisplayName: (exerciseName: string) => string
+  getRoutineDisplayName: (routine: string) => string
 }
 
 export function WorkoutBuilderProtocol(props: WorkoutBuilderProtocolProps) {
@@ -41,10 +43,10 @@ export function WorkoutBuilderProtocol(props: WorkoutBuilderProtocolProps) {
     handleRemoveDraftExercise, handleUpdateDraftExercise, handleClearStudentWorkout,
     showManualCreateForm, setShowManualCreateForm, handleSubmitManualCreate,
     manualExerciseForm, setManualExerciseForm,
-    activeDraftDay, activeDraftRoutine, studentAvailableDays, studentRoutineOptions,
+    activeDraftDay, activeDraftRoutine, activeDraftRoutineLabel, studentAvailableDays, studentRoutineOptions,
     setCollapsedDraftExerciseIds, isExerciseCollapsed,
     getProtocolMode, applyProtocolMode,
-    finalizeLoading, runFinalizeWorkout, syncMessage, getExerciseDisplayName,
+    finalizeLoading, runFinalizeWorkout, syncMessage, getExerciseDisplayName, getRoutineDisplayName,
   } = props
 
   return (
@@ -92,7 +94,9 @@ export function WorkoutBuilderProtocol(props: WorkoutBuilderProtocolProps) {
                     <input id="manual-exercise-equipment" className="field-input" value={manualExerciseForm.equipment} onChange={(event) => setManualExerciseForm((c) => ({ ...c, equipment: event.target.value }))} />
                   </div>
                 </div>
-                <p className="demo-query">Vai entrar no Treino {activeDraftRoutine} • Dia {activeDraftDay || 'Todos os dias'}.</p>
+                <p className="demo-query">
+                  Vai entrar em {activeDraftRoutineLabel ? `${getRoutineDisplayName(activeDraftRoutine)}` : `Treino ${activeDraftRoutine}`} • Dia {activeDraftDay || 'Todos os dias'}.
+                </p>
                 <div className="video-attach-actions manual-create-actions">
                   <button type="submit" className="btn-primary">Adicionar no protocolo</button>
                   <button type="button" className="btn-secondary" onClick={() => setShowManualCreateForm(false)}>Cancelar</button>
@@ -108,7 +112,7 @@ export function WorkoutBuilderProtocol(props: WorkoutBuilderProtocolProps) {
                 <div className="draft-item-head">
                   <div>
                     <strong>{index + 1}. {getExerciseDisplayName(exercise.name)}</strong>
-                    <span>Treino {normalizeWorkoutRoutine(exercise.routine)} • Dia {normalizeWorkoutDay(exercise.day) || 'Todos'} • {exercise.muscleGroup} - {exercise.equipment}</span>
+                    <span>{getRoutineDisplayName(normalizeWorkoutRoutine(exercise.routine))} • Dia {normalizeWorkoutDay(exercise.day) || 'Todos'} • {exercise.muscleGroup} - {exercise.equipment}</span>
                   </div>
                   <div className="draft-item-head-actions">
                     <button type="button" className="btn-secondary" onClick={() => { setCollapsedDraftExerciseIds((current) => isExerciseCollapsed(exercise.id) ? current.filter((id) => id !== exercise.id) : [...current, exercise.id]); if (!isExerciseCollapsed(exercise.id) && editingDraftExerciseId === exercise.id) { setEditingDraftExerciseId(null) } }} aria-expanded={!isExerciseCollapsed(exercise.id)}>{isExerciseCollapsed(exercise.id) ? 'Expandir' : 'Recolher'}</button>
@@ -143,7 +147,7 @@ export function WorkoutBuilderProtocol(props: WorkoutBuilderProtocolProps) {
                       <div>
                         <label className="field-label" htmlFor={`routine-${exercise.id}`}>Treino</label>
                         <select id={`routine-${exercise.id}`} className="field-input" value={normalizeWorkoutRoutine(exercise.routine)} onChange={(event) => handleUpdateDraftExercise(exercise.id, 'routine', event.target.value)}>
-                          {studentRoutineOptions.map((routine) => (<option key={`draft-routine-${exercise.id}-${routine}`} value={routine}>Treino {routine}</option>))}
+                          {studentRoutineOptions.map((routine) => (<option key={`draft-routine-${exercise.id}-${routine}`} value={routine}>{getRoutineDisplayName(routine)}</option>))}
                         </select>
                       </div>
                       <div>

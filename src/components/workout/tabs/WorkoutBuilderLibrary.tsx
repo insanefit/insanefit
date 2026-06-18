@@ -39,9 +39,9 @@ export type WorkoutBuilderLibraryProps = {
   handleRemoveVideoAttachment: () => Promise<void>
   handleImportVideosFromExerciseDb: () => Promise<void>
   handleOpenExerciseDemo: (exercise: LibraryExercise) => void
-  handleAddExerciseToDraft: (exercise: LibraryExercise, day?: string, routine?: string) => void
-  handleQuickAddExercise: (event: FormEvent<HTMLFormElement>, day?: string, routine?: string) => void
-  handleApplyWorkoutTemplate: (template: WorkoutTemplate, day?: string, routine?: string) => void
+  handleAddExerciseToDraft: (exercise: LibraryExercise, day?: string, routine?: string, routineLabel?: string) => void
+  handleQuickAddExercise: (event: FormEvent<HTMLFormElement>, day?: string, routine?: string, routineLabel?: string) => void
+  handleApplyWorkoutTemplate: (template: WorkoutTemplate, day?: string, routine?: string, routineLabel?: string) => void
   quickAddExerciseName: string
   setQuickAddExerciseName: Dispatch<SetStateAction<string>>
   // From builderState
@@ -53,6 +53,7 @@ export type WorkoutBuilderLibraryProps = {
   setShowAdvancedLibraryTools: (value: boolean | ((current: boolean) => boolean)) => void
   activeDraftDay: string
   activeDraftRoutine: string
+  activeDraftRoutineLabel: string
   draftNameKeys: Set<string>
   videoEnabledCount: number
   draftMatchCount: number
@@ -90,7 +91,7 @@ export function WorkoutBuilderLibrary(props: WorkoutBuilderLibraryProps) {
     quickAddExerciseName, setQuickAddExerciseName,
     libraryTab, setLibraryTab, setLibraryPage,
     showAdvancedLibraryTools, setShowAdvancedLibraryTools,
-    activeDraftDay, activeDraftRoutine, draftNameKeys, draftMatchCount,
+    activeDraftDay, activeDraftRoutine, activeDraftRoutineLabel, draftNameKeys, draftMatchCount,
     totalLibraryPages, safeLibraryPage, visibleLibraryExercises, visiblePages,
     handleClearLibraryFilters, handleOpenManualCreate, handleEditExerciseVideo,
     extractYoutubeVideoId, buildYoutubeThumbUrl,
@@ -153,7 +154,7 @@ export function WorkoutBuilderLibrary(props: WorkoutBuilderLibraryProps) {
                 </div>
                 <div className="template-list">
                   {workoutTemplates.map((template) => (
-                    <button key={template.id} type="button" className="template-card" onClick={() => handleApplyWorkoutTemplate(template, activeDraftDay, activeDraftRoutine)}>
+                    <button key={template.id} type="button" className="template-card" onClick={() => handleApplyWorkoutTemplate(template, activeDraftDay, activeDraftRoutine, activeDraftRoutineLabel)}>
                       <strong>{template.label}</strong>
                       <span>{template.goal}</span>
                     </button>
@@ -172,7 +173,7 @@ export function WorkoutBuilderLibrary(props: WorkoutBuilderLibraryProps) {
                 <option value="advanced">Avancado</option>
               </select>
             </div>
-            <form className="quick-add-form" onSubmit={(event) => handleQuickAddExercise(event, activeDraftDay, activeDraftRoutine)}>
+            <form className="quick-add-form" onSubmit={(event) => handleQuickAddExercise(event, activeDraftDay, activeDraftRoutine, activeDraftRoutineLabel)}>
               <label className="field-label" htmlFor="quick-add-exercise">Adicionar rapido</label>
               <div className="quick-add-input-row">
                 <input id="quick-add-exercise" className="field-input" value={quickAddExerciseName} onChange={(event) => setQuickAddExerciseName(event.target.value)} placeholder="Digite e pressione Enter" list="exercise-name-list" />
@@ -184,7 +185,7 @@ export function WorkoutBuilderLibrary(props: WorkoutBuilderLibraryProps) {
             </form>
             <div className="quick-add-chips">
               {quickAddExercises.map((exercise) => (
-                <button key={`chip-${exercise.id}`} type="button" className="quick-add-chip" onClick={() => handleAddExerciseToDraft(exercise, activeDraftDay, activeDraftRoutine)}>+ {getExerciseDisplayName(exercise.name)}</button>
+                <button key={`chip-${exercise.id}`} type="button" className="quick-add-chip" onClick={() => handleAddExerciseToDraft(exercise, activeDraftDay, activeDraftRoutine, activeDraftRoutineLabel)}>+ {getExerciseDisplayName(exercise.name)}</button>
               ))}
             </div>
           </div>
@@ -229,7 +230,7 @@ export function WorkoutBuilderLibrary(props: WorkoutBuilderLibraryProps) {
                   <button type="button" className="btn-secondary" onClick={() => handleEditExerciseVideo(exercise)}>
                     {manualVideo ? 'Editar video' : 'Add video'}
                   </button>
-                  <button type="button" className={alreadyInDraft ? 'btn-secondary' : 'btn-primary'} onClick={() => handleAddExerciseToDraft(exercise, activeDraftDay, activeDraftRoutine)} disabled={alreadyInDraft}>{alreadyInDraft ? 'Adicionado' : 'Adicionar'}</button>
+                  <button type="button" className={alreadyInDraft ? 'btn-secondary' : 'btn-primary'} onClick={() => handleAddExerciseToDraft(exercise, activeDraftDay, activeDraftRoutine, activeDraftRoutineLabel)} disabled={alreadyInDraft}>{alreadyInDraft ? 'Adicionado' : 'Adicionar'}</button>
                 </div>
               </article>
             )

@@ -164,7 +164,7 @@ export type AppContextType = {
   setQuickAddExerciseName: Dispatch<SetStateAction<string>>
   manualExerciseForm: ManualExerciseFormState
   setManualExerciseForm: Dispatch<SetStateAction<ManualExerciseFormState>>
-  handleAddExerciseToDraft: (exercise: LibraryExercise, day?: string, routine?: string) => void
+  handleAddExerciseToDraft: (exercise: LibraryExercise, day?: string, routine?: string, routineLabel?: string) => void
   handleRemoveDraftExercise: (draftId: string) => void
   handleUpdateDraftExercise: <K extends WorkoutDraftEditableField>(
     draftId: string,
@@ -173,10 +173,10 @@ export type AppContextType = {
   ) => void
   handleSaveWorkoutDraft: () => Promise<void>
   handleClearStudentWorkout: () => Promise<void>
-  handleApplyWorkoutTemplate: (template: WorkoutTemplate, day?: string, routine?: string) => void
+  handleApplyWorkoutTemplate: (template: WorkoutTemplate, day?: string, routine?: string, routineLabel?: string) => void
   handleApplyQuickProtocol: (event: FormEvent<HTMLFormElement>) => void
-  handleQuickAddExercise: (event: FormEvent<HTMLFormElement>, day?: string, routine?: string) => void
-  handleAddManualExercise: (event: FormEvent<HTMLFormElement>, day?: string, routine?: string) => void
+  handleQuickAddExercise: (event: FormEvent<HTMLFormElement>, day?: string, routine?: string, routineLabel?: string) => void
+  handleAddManualExercise: (event: FormEvent<HTMLFormElement>, day?: string, routine?: string, routineLabel?: string) => void
 
   // Exercise library
   exerciseQuery: string

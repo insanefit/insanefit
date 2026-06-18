@@ -3,6 +3,7 @@ export type WorkoutDraftItem = {
   name: string
   day: string
   routine: string
+  routineLabel?: string
   muscleGroup: string
   category: string
   equipment: string

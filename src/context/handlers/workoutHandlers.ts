@@ -29,6 +29,7 @@ import {
   draftToWorkout,
   normalizeWorkoutDay,
   normalizeWorkoutRoutine,
+  normalizeWorkoutRoutineLabel,
 } from '../../utils/workoutProtocol'
 
 type WorkoutHandlerDeps = {
@@ -295,7 +296,12 @@ export const createWorkoutHandlers = (deps: WorkoutHandlerDeps) => {
     }
   }
 
-  const createDraftItemFromExercise = (exercise: LibraryExercise, day = '', routine = 'A'): WorkoutDraftItem => {
+  const createDraftItemFromExercise = (
+    exercise: LibraryExercise,
+    day = '',
+    routine = 'A',
+    routineLabel = '',
+  ): WorkoutDraftItem => {
     const defaults = createDefaultProtocol(exercise.muscleGroup)
     return {
       id: createId('w'),
@@ -303,13 +309,14 @@ export const createWorkoutHandlers = (deps: WorkoutHandlerDeps) => {
       ...defaults,
       day: normalizeWorkoutDay(day),
       routine: normalizeWorkoutRoutine(routine),
+      routineLabel: normalizeWorkoutRoutineLabel(routineLabel),
       muscleGroup: exercise.muscleGroup,
       category: exercise.category,
       equipment: exercise.equipment,
     }
   }
 
-  const handleApplyWorkoutTemplate = (template: WorkoutTemplate, day = '', routine = 'A') => {
+  const handleApplyWorkoutTemplate = (template: WorkoutTemplate, day = '', routine = 'A', routineLabel = '') => {
     if (!selectedStudent) {
       setSyncMessage('Selecione um aluno para aplicar um template.')
       return
@@ -326,8 +333,9 @@ export const createWorkoutHandlers = (deps: WorkoutHandlerDeps) => {
 
     const normalizedDay = normalizeWorkoutDay(day)
     const normalizedRoutine = normalizeWorkoutRoutine(routine)
+    const normalizedRoutineLabel = normalizeWorkoutRoutineLabel(routineLabel)
     const nextDraft = matchedExercises.map((exercise) =>
-      createDraftItemFromExercise(exercise, normalizedDay, normalizedRoutine),
+      createDraftItemFromExercise(exercise, normalizedDay, normalizedRoutine, normalizedRoutineLabel),
     )
     setWorkoutDraft(nextDraft)
     setEditingDraftExerciseId(nextDraft[0]?.id ?? null)
@@ -354,9 +362,10 @@ export const createWorkoutHandlers = (deps: WorkoutHandlerDeps) => {
     setSyncMessage('Ajuste rapido aplicado em todo o treino.')
   }
 
-  const handleAddExerciseToDraft = (exercise: LibraryExercise, day = '', routine = 'A') => {
+  const handleAddExerciseToDraft = (exercise: LibraryExercise, day = '', routine = 'A', routineLabel = '') => {
     const normalizedDay = normalizeWorkoutDay(day)
     const normalizedRoutine = normalizeWorkoutRoutine(routine)
+    const normalizedRoutineLabel = normalizeWorkoutRoutineLabel(routineLabel)
     const existing = workoutDraft.find(
       (item) =>
         item.name.toLowerCase() === exercise.name.toLowerCase() &&
@@ -371,14 +380,14 @@ export const createWorkoutHandlers = (deps: WorkoutHandlerDeps) => {
       return
     }
 
-    const newDraftItem = createDraftItemFromExercise(exercise, normalizedDay, normalizedRoutine)
+    const newDraftItem = createDraftItemFromExercise(exercise, normalizedDay, normalizedRoutine, normalizedRoutineLabel)
     setWorkoutDraft((current) => [...current, newDraftItem])
     setEditingDraftExerciseId(newDraftItem.id)
     setSyncMessage(`${getExerciseDisplayName(exercise.name)} adicionado ao treino.`)
     handleOpenExerciseDemo(exercise)
   }
 
-  const handleQuickAddExercise = (event: FormEvent<HTMLFormElement>, day = '', routine = 'A') => {
+  const handleQuickAddExercise = (event: FormEvent<HTMLFormElement>, day = '', routine = 'A', routineLabel = '') => {
     event.preventDefault()
     const query = quickAddExerciseName.trim().toLowerCase()
     if (!query) {
@@ -401,7 +410,7 @@ export const createWorkoutHandlers = (deps: WorkoutHandlerDeps) => {
       return
     }
 
-    handleAddExerciseToDraft(targetExercise, day, routine)
+    handleAddExerciseToDraft(targetExercise, day, routine, routineLabel)
     setQuickAddExerciseName('')
   }
 
@@ -511,7 +520,7 @@ export const createWorkoutHandlers = (deps: WorkoutHandlerDeps) => {
     await persistWorkoutForStudent([])
   }
 
-  const handleAddManualExercise = (event: FormEvent<HTMLFormElement>, day = '', routine = 'A') => {
+  const handleAddManualExercise = (event: FormEvent<HTMLFormElement>, day = '', routine = 'A', routineLabel = '') => {
     event.preventDefault()
     const name = manualExerciseForm.name.trim()
     if (!name) {
@@ -526,6 +535,7 @@ export const createWorkoutHandlers = (deps: WorkoutHandlerDeps) => {
       ...defaults,
       day: normalizeWorkoutDay(day),
       routine: normalizeWorkoutRoutine(routine),
+      routineLabel: normalizeWorkoutRoutineLabel(routineLabel),
       muscleGroup: manualExerciseForm.muscleGroup,
       category: manualExerciseForm.category.trim() || 'Personalizado',
       equipment: manualExerciseForm.equipment.trim() || 'Livre',

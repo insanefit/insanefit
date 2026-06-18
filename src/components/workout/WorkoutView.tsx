@@ -94,6 +94,7 @@ export function WorkoutView() {
     activeDraftDay, setActiveDraftDayChoice,
     draftDayFilter, setDraftDayFilterChoice,
     activeDraftRoutine, setActiveDraftRoutineChoice,
+    activeDraftRoutineLabel, getRoutineDisplayName, handleUpdateRoutineLabel,
     draftRoutineFilter, setDraftRoutineFilterChoice,
     duplicateSourceRoutine, setDuplicateSourceRoutine,
     duplicateTargetRoutine, setDuplicateTargetRoutine,
@@ -266,9 +267,18 @@ export function WorkoutView() {
               onChange={(event) => setActiveDraftRoutineChoice(event.target.value)}
             >
               {studentRoutineOptions.map((routine) => (
-                <option key={`routine-add-${routine}`} value={routine}>Treino {routine}</option>
+                <option key={`routine-add-${routine}`} value={routine}>{getRoutineDisplayName(routine)}</option>
               ))}
             </select>
+
+            <label className="field-label" htmlFor="workout-routine-label">Nome do treino</label>
+            <input
+              id="workout-routine-label"
+              className="field-input"
+              value={activeDraftRoutineLabel}
+              onChange={(event) => handleUpdateRoutineLabel(event.target.value)}
+              placeholder="Ex: Peito e ombro"
+            />
 
             <label className="field-label" htmlFor="workout-day-add">Dia para adicionar</label>
             <select
@@ -305,7 +315,7 @@ export function WorkoutView() {
                 >
                   <option value="Todos">Todos os treinos</option>
                   {studentRoutineOptions.map((routine) => (
-                    <option key={`routine-filter-${routine}`} value={routine}>Treino {routine}</option>
+                    <option key={`routine-filter-${routine}`} value={routine}>{getRoutineDisplayName(routine)}</option>
                   ))}
                 </select>
 
@@ -332,7 +342,7 @@ export function WorkoutView() {
                   onChange={(event) => setDuplicateSourceRoutine(event.target.value)}
                 >
                   {studentRoutineOptions.map((routine) => (
-                    <option key={`duplicate-source-${routine}`} value={routine}>Treino {routine}</option>
+                    <option key={`duplicate-source-${routine}`} value={routine}>{getRoutineDisplayName(routine)}</option>
                   ))}
                 </select>
                 <span className="duplicate-arrow">→</span>
@@ -343,7 +353,7 @@ export function WorkoutView() {
                   onChange={(event) => setDuplicateTargetRoutine(event.target.value)}
                 >
                   {studentRoutineOptions.map((routine) => (
-                    <option key={`duplicate-target-${routine}`} value={routine}>Treino {routine}</option>
+                    <option key={`duplicate-target-${routine}`} value={routine}>{getRoutineDisplayName(routine)}</option>
                   ))}
                 </select>
                 <button type="button" className="btn-secondary" onClick={handleDuplicateRoutine}>
@@ -386,7 +396,7 @@ export function WorkoutView() {
               quickAddExerciseName={quickAddExerciseName} setQuickAddExerciseName={setQuickAddExerciseName}
               libraryTab={libraryTab} setLibraryTab={setLibraryTab} libraryPage={libraryPage} setLibraryPage={setLibraryPage}
               showAdvancedLibraryTools={showAdvancedLibraryTools} setShowAdvancedLibraryTools={setShowAdvancedLibraryTools}
-              activeDraftDay={activeDraftDay} activeDraftRoutine={activeDraftRoutine} draftNameKeys={draftNameKeys}
+              activeDraftDay={activeDraftDay} activeDraftRoutine={activeDraftRoutine} activeDraftRoutineLabel={activeDraftRoutineLabel} draftNameKeys={draftNameKeys}
               videoEnabledCount={videoEnabledCount} draftMatchCount={draftMatchCount}
               totalLibraryPages={totalLibraryPages} safeLibraryPage={safeLibraryPage} visibleLibraryExercises={visibleLibraryExercises} visiblePages={visiblePages}
               handleClearLibraryFilters={handleClearLibraryFilters} handleOpenManualCreate={handleOpenManualCreate} handleEditExerciseVideo={handleEditExerciseVideo}
@@ -407,11 +417,13 @@ export function WorkoutView() {
               handleSubmitManualCreate={handleSubmitManualCreate}
               manualExerciseForm={manualExerciseForm} setManualExerciseForm={setManualExerciseForm}
               activeDraftDay={activeDraftDay} activeDraftRoutine={activeDraftRoutine}
+              activeDraftRoutineLabel={activeDraftRoutineLabel}
               studentAvailableDays={studentAvailableDays} studentRoutineOptions={studentRoutineOptions}
               collapsedDraftExerciseIds={collapsedDraftExerciseIds} setCollapsedDraftExerciseIds={setCollapsedDraftExerciseIds}
               isExerciseCollapsed={isExerciseCollapsed} getProtocolMode={getProtocolMode} applyProtocolMode={applyProtocolMode}
               finalizeLoading={finalizeLoading} runFinalizeWorkout={runFinalizeWorkout}
               syncMessage={syncMessage} getExerciseDisplayName={getExerciseDisplayName}
+              getRoutineDisplayName={getRoutineDisplayName}
             />
           )}
         </>
