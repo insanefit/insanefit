@@ -421,6 +421,7 @@ export function WorkoutView() {
               studentAvailableDays={studentAvailableDays} studentRoutineOptions={studentRoutineOptions}
               collapsedDraftExerciseIds={collapsedDraftExerciseIds} setCollapsedDraftExerciseIds={setCollapsedDraftExerciseIds}
               isExerciseCollapsed={isExerciseCollapsed} getProtocolMode={getProtocolMode} applyProtocolMode={applyProtocolMode}
+              applyPresetProtocol={builderState.applyPresetProtocol} moveDraftExerciseUp={builderState.moveDraftExerciseUp} moveDraftExerciseDown={builderState.moveDraftExerciseDown}
               finalizeLoading={finalizeLoading} runFinalizeWorkout={runFinalizeWorkout}
               syncMessage={syncMessage} getExerciseDisplayName={getExerciseDisplayName}
               getRoutineDisplayName={getRoutineDisplayName}

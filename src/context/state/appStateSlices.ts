@@ -157,7 +157,7 @@ export const useExerciseFiltersStateSlice = () => {
   const [difficultyFilter, setDifficultyFilter] = useState<
     'Todos' | 'beginner' | 'intermediate' | 'advanced'
   >('Todos')
-  const [sourceFilter, setSourceFilter] = useState<'Todos' | 'core' | 'animatic'>('Todos')
+  const [sourceFilter, setSourceFilter] = useState<'Todos' | 'core' | 'animatic' | 'dataset'>('Todos')
 
   return {
     exerciseQuery,

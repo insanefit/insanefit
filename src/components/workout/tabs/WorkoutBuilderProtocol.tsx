@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import type { Dispatch, FormEvent, SetStateAction } from 'react'
 import { normalizeWorkoutDay, normalizeWorkoutRoutine } from '../../../utils/workoutProtocol'
 import type { WorkoutDraftItem, WorkoutDraftEditableField } from '../../../types/workout'
@@ -29,6 +30,9 @@ export type WorkoutBuilderProtocolProps = {
   isExerciseCollapsed: (exerciseId: string) => boolean
   getProtocolMode: (exercise: WorkoutDraftItem) => ProtocolMode
   applyProtocolMode: (exerciseId: string, mode: ProtocolMode) => void
+  applyPresetProtocol: (exerciseId: string, preset: 'hipertrofia' | 'forca' | 'resistencia' | 'cluster' | 'myo' | 'drop') => void
+  moveDraftExerciseUp: (exerciseId: string) => void
+  moveDraftExerciseDown: (exerciseId: string) => void
   finalizeLoading: boolean
   runFinalizeWorkout: (advanceToNextDay: boolean) => Promise<void>
   syncMessage: string
@@ -45,9 +49,28 @@ export function WorkoutBuilderProtocol(props: WorkoutBuilderProtocolProps) {
     manualExerciseForm, setManualExerciseForm,
     activeDraftDay, activeDraftRoutine, activeDraftRoutineLabel, studentAvailableDays, studentRoutineOptions,
     setCollapsedDraftExerciseIds, isExerciseCollapsed,
-    getProtocolMode, applyProtocolMode,
+    getProtocolMode, applyProtocolMode, applyPresetProtocol, moveDraftExerciseUp, moveDraftExerciseDown,
     finalizeLoading, runFinalizeWorkout, syncMessage, getExerciseDisplayName, getRoutineDisplayName,
   } = props
+
+  const muscleVolumeSummary = useMemo(() => {
+    const counts: Record<string, number> = {}
+    filteredDraft.forEach((ex) => {
+      const group = ex.muscleGroup || 'Outros'
+      const sets = parseInt(ex.workSets || '3', 10) || 3
+      counts[group] = (counts[group] || 0) + sets
+    })
+    return counts
+  }, [filteredDraft])
+
+  const totalEstimatedMinutes = useMemo(() => {
+    let totalSets = 0
+    filteredDraft.forEach((ex) => {
+      const sets = parseInt(ex.workSets || '3', 10) || 3
+      totalSets += sets
+    })
+    return Math.round(totalSets * 2.5) // ~2.5 min per set including rest
+  }, [filteredDraft])
 
   return (
     <>
@@ -71,6 +94,22 @@ export function WorkoutBuilderProtocol(props: WorkoutBuilderProtocolProps) {
               <span className="chip">{workoutDraft.length} exercicios</span>
             </div>
           </div>
+
+          {filteredDraft.length > 0 && (
+            <div className="phase-card" style={{ marginBottom: '1rem', background: 'var(--surface-color, #1a1a1a)', padding: '0.75rem 1rem', borderRadius: '8px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                <strong style={{ fontSize: '0.9rem' }}>📊 Volume por Grupo Muscular (Treino Atual)</strong>
+                <span className="chip" style={{ background: 'var(--accent-glow, rgba(0, 230, 153, 0.15))' }}>⏱️ Duração Est.: ~{totalEstimatedMinutes} min</span>
+              </div>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '8px' }}>
+                {Object.entries(muscleVolumeSummary).map(([group, sets]) => (
+                  <span key={`volume-${group}`} className="library-pill" style={{ background: sets > 15 ? 'rgba(255, 99, 132, 0.2)' : 'rgba(255, 255, 255, 0.08)' }}>
+                    <strong>{group}</strong>: {sets} séries
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="draft-list">
             {showManualCreateForm && (
@@ -115,10 +154,24 @@ export function WorkoutBuilderProtocol(props: WorkoutBuilderProtocolProps) {
                     <span>{getRoutineDisplayName(normalizeWorkoutRoutine(exercise.routine))} • Dia {normalizeWorkoutDay(exercise.day) || 'Todos'} • {exercise.muscleGroup} - {exercise.equipment}</span>
                   </div>
                   <div className="draft-item-head-actions">
+                    <button type="button" className="tab-chip" onClick={() => moveDraftExerciseUp(exercise.id)} disabled={index === 0} title="Mover para cima">▲</button>
+                    <button type="button" className="tab-chip" onClick={() => moveDraftExerciseDown(exercise.id)} disabled={index === filteredDraft.length - 1} title="Mover para baixo">▼</button>
                     <button type="button" className="btn-secondary" onClick={() => { setCollapsedDraftExerciseIds((current) => isExerciseCollapsed(exercise.id) ? current.filter((id) => id !== exercise.id) : [...current, exercise.id]); if (!isExerciseCollapsed(exercise.id) && editingDraftExerciseId === exercise.id) { setEditingDraftExerciseId(null) } }} aria-expanded={!isExerciseCollapsed(exercise.id)}>{isExerciseCollapsed(exercise.id) ? 'Expandir' : 'Recolher'}</button>
                     <button type="button" className="btn-ghost" onClick={() => handleRemoveDraftExercise(exercise.id)}>Remover</button>
                   </div>
                 </div>
+
+                {!isExerciseCollapsed(exercise.id) && (
+                  <div className="preset-chip-row" style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', margin: '8px 0', background: 'rgba(255, 255, 255, 0.03)', padding: '6px', borderRadius: '6px' }}>
+                    <span style={{ fontSize: '0.75rem', opacity: 0.7, width: '100%' }}>Presets Rápidos:</span>
+                    <button type="button" className="tab-chip" onClick={() => applyPresetProtocol(exercise.id, 'hipertrofia')}>⚡ Hipertrofia (3x10-12)</button>
+                    <button type="button" className="tab-chip" onClick={() => applyPresetProtocol(exercise.id, 'forca')}>🏋️ Força (4x6)</button>
+                    <button type="button" className="tab-chip" onClick={() => applyPresetProtocol(exercise.id, 'resistencia')}>🔥 Resistência (4x15)</button>
+                    <button type="button" className="tab-chip" onClick={() => applyPresetProtocol(exercise.id, 'cluster')}>🎯 Cluster Set</button>
+                    <button type="button" className="tab-chip" onClick={() => applyPresetProtocol(exercise.id, 'myo')}>🚀 Myo-reps</button>
+                    <button type="button" className="tab-chip" onClick={() => applyPresetProtocol(exercise.id, 'drop')}>💥 Drop-set</button>
+                  </div>
+                )}
 
                 {isExerciseCollapsed(exercise.id) && (<p className="draft-collapsed-hint">Exercício recolhido. Toque em <strong>Expandir</strong> para editar protocolo e séries.</p>)}
 

@@ -81,6 +81,9 @@ export type WorkoutBuilderLocalState = {
   handleEditExerciseVideo: (exercise: LibraryExercise) => void
   getProtocolMode: (exercise: WorkoutDraftItem) => ProtocolMode
   applyProtocolMode: (exerciseId: string, mode: ProtocolMode) => void
+  applyPresetProtocol: (exerciseId: string, preset: 'hipertrofia' | 'forca' | 'resistencia' | 'cluster' | 'myo' | 'drop') => void
+  moveDraftExerciseUp: (exerciseId: string) => void
+  moveDraftExerciseDown: (exerciseId: string) => void
   extractYoutubeVideoId: typeof extractYoutubeVideoId
   buildYoutubeThumbUrl: typeof buildYoutubeThumbUrl
 }
@@ -302,9 +305,56 @@ export function useWorkoutBuilderState(context: {
     )
   }
 
+  const applyPresetProtocol = (exerciseId: string, preset: 'hipertrofia' | 'forca' | 'resistencia' | 'cluster' | 'myo' | 'drop') => {
+    setWorkoutDraft((current) =>
+      current.map((item) => {
+        if (item.id !== exerciseId) return item
+        if (preset === 'hipertrofia') {
+          return { ...item, sets: '3', reps: '10 - 12', rest: '90s', note: item.note ? `${item.note} | Cadência 2-0-2` : 'Cadência controlada 2-0-2', useClusterSet: false, useMyoReps: false }
+        }
+        if (preset === 'forca') {
+          return { ...item, sets: '4', reps: '6', rest: '120s', note: item.note ? `${item.note} | Carga máxima` : 'Carga alta com técnica estrita', useClusterSet: false, useMyoReps: false }
+        }
+        if (preset === 'resistencia') {
+          return { ...item, sets: '4', reps: '15 - 20', rest: '60s', note: item.note ? `${item.note} | Ritmo constante` : 'Ritmo constante', useClusterSet: false, useMyoReps: false }
+        }
+        if (preset === 'cluster') {
+          return { ...item, sets: '4', reps: '4+4+4', rest: '90s', useClusterSet: true, clusterBlocks: '3', clusterReps: '4', clusterRest: '15s', useMyoReps: false, note: item.note ? `${item.note} | Pausa intra-set` : 'Pausas intra-série de 15s' }
+        }
+        if (preset === 'myo') {
+          return { ...item, sets: '1 + 4', reps: '12 + 3-5', rest: '60s', useClusterSet: false, useMyoReps: true, myoMiniSets: '4', myoMiniReps: '3-5', myoRest: '10s', note: item.note ? `${item.note} | Myo-reps` : 'Ativação até RPE 9 + 4 mini-séries' }
+        }
+        return { ...item, sets: '3', reps: '8 + Drop', rest: '90s', note: item.note ? `${item.note} | Drop-set final` : 'Reduzir 20% da carga após falha no último set', useClusterSet: false, useMyoReps: false }
+      }),
+    )
+  }
+
+  const moveDraftExerciseUp = (exerciseId: string) => {
+    setWorkoutDraft((current) => {
+      const index = current.findIndex((e) => e.id === exerciseId)
+      if (index <= 0) return current
+      const next = [...current]
+      const temp = next[index - 1]
+      next[index - 1] = next[index]
+      next[index] = temp
+      return next
+    })
+  }
+
+  const moveDraftExerciseDown = (exerciseId: string) => {
+    setWorkoutDraft((current) => {
+      const index = current.findIndex((e) => e.id === exerciseId)
+      if (index < 0 || index >= current.length - 1) return current
+      const next = [...current]
+      const temp = next[index + 1]
+      next[index + 1] = next[index]
+      next[index] = temp
+      return next
+    })
+  }
+
   return {
-    libraryTab, setLibraryTab,
-    libraryPage, setLibraryPage,
+    libraryTab, setLibraryTab, libraryPage, setLibraryPage,
     showAdvancedLibraryTools, setShowAdvancedLibraryTools,
     showManualCreateForm, setShowManualCreateForm,
     showPlanningTools, setShowPlanningTools,
@@ -313,16 +363,17 @@ export function useWorkoutBuilderState(context: {
     activeDraftDay, setActiveDraftDayChoice,
     draftDayFilter, setDraftDayFilterChoice,
     activeDraftRoutine, setActiveDraftRoutineChoice,
+    activeDraftRoutineLabel, getRoutineDisplayName, handleUpdateRoutineLabel,
     draftRoutineFilter, setDraftRoutineFilterChoice,
     duplicateSourceRoutine, setDuplicateSourceRoutine,
     duplicateTargetRoutine, setDuplicateTargetRoutine,
     studentAvailableDays, studentRoutineOptions,
-    activeDraftRoutineLabel, getRoutineDisplayName, handleUpdateRoutineLabel,
     draftNameKeys, libraryExercises, videoEnabledCount, draftMatchCount, filteredDraft,
     totalLibraryPages, safeLibraryPage, visibleLibraryExercises, visiblePages,
     handleDuplicateRoutine, handleClearLibraryFilters, handleOpenManualCreate,
     runFinalizeWorkout, handleSubmitManualCreate, isExerciseCollapsed,
     handleEditExerciseVideo, getProtocolMode, applyProtocolMode,
+    applyPresetProtocol, moveDraftExerciseUp, moveDraftExerciseDown,
     extractYoutubeVideoId, buildYoutubeThumbUrl,
   }
 }

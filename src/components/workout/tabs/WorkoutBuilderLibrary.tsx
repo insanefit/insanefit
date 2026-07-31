@@ -21,13 +21,13 @@ export type WorkoutBuilderLibraryProps = {
   setEquipmentFilter: Dispatch<SetStateAction<string>>
   difficultyFilter: 'Todos' | 'beginner' | 'intermediate' | 'advanced'
   setDifficultyFilter: Dispatch<SetStateAction<'Todos' | 'beginner' | 'intermediate' | 'advanced'>>
-  sourceFilter: 'Todos' | 'core' | 'animatic'
-  setSourceFilter: Dispatch<SetStateAction<'Todos' | 'core' | 'animatic'>>
+  sourceFilter: 'Todos' | 'core' | 'animatic' | 'dataset'
+  setSourceFilter: Dispatch<SetStateAction<'Todos' | 'core' | 'animatic' | 'dataset'>>
   filteredExercises: LibraryExercise[]
   quickAddExercises: LibraryExercise[]
   categoryOptions: string[]
   equipmentOptions: string[]
-  sourceSummary: { core: number; animatic: number }
+  sourceSummary: { core: number; animatic: number; dataset?: number }
   demoExercise: LibraryExercise | null
   activeDemoOption: DemoViewerOption | undefined
   videoAttachmentForm: VideoAttachmentFormState
@@ -135,10 +135,10 @@ export function WorkoutBuilderLibrary(props: WorkoutBuilderLibraryProps) {
         </div>
 
         <div className="library-clean-actions">
-          <select aria-label="Filtrar por fonte" className="field-input" value={sourceFilter} onChange={(event) => { setLibraryPage(1); setSourceFilter(event.target.value as 'Todos' | 'core' | 'animatic') }}>
-            <option value="Todos">Todas as fontes</option>
-            <option value="core">Biblioteca base ({sourceSummary.core})</option>
-            <option value="animatic">Exercise Animatic ({sourceSummary.animatic})</option>
+          <select aria-label="Filtrar por fonte" className="field-input" value={sourceFilter} onChange={(event) => { setLibraryPage(1); setSourceFilter(event.target.value as 'Todos' | 'core' | 'dataset') }}>
+            <option value="Todos">Todas as fontes ({sourceSummary.core + (sourceSummary.dataset ?? 1324)})</option>
+            <option value="dataset">Base 1.324 Exercícios</option>
+            <option value="core">Biblioteca Base Nativa ({sourceSummary.core})</option>
           </select>
           <button type="button" className="btn-secondary" onClick={handleClearLibraryFilters}>Limpar filtros</button>
           <button type="button" className="btn-ghost" onClick={() => setShowAdvancedLibraryTools((current) => !current)}>{showAdvancedLibraryTools ? 'Ocultar avancado' : 'Mostrar avancado'}</button>
@@ -215,7 +215,11 @@ export function WorkoutBuilderLibrary(props: WorkoutBuilderLibraryProps) {
             return (
               <article key={exercise.id} className="library-item mfit-card">
                 <div className="library-thumb library-thumb-static" aria-hidden="true">
-                  <span>{exercise.muscleGroup.slice(0, 3).toUpperCase()}</span>
+                  {exercise.imageUrl || exercise.gifUrl ? (
+                    <img src={exercise.imageUrl || exercise.gifUrl} alt="" className="exercise-thumb-img" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '4px' }} />
+                  ) : (
+                    <span>{exercise.muscleGroup.slice(0, 3).toUpperCase()}</span>
+                  )}
                 </div>
                 <div className="library-item-text">
                   <strong>{getExerciseDisplayName(exercise.name)}</strong>

@@ -74,7 +74,7 @@ type ExerciseLibraryDerivedParams = {
   categoryFilter: string
   equipmentFilter: string
   difficultyFilter: 'Todos' | 'beginner' | 'intermediate' | 'advanced'
-  sourceFilter: 'Todos' | 'core' | 'animatic'
+  sourceFilter: 'Todos' | 'core' | 'animatic' | 'dataset'
   workoutDraft: WorkoutDraftItem[]
 }
 
@@ -111,6 +111,7 @@ export const useExerciseLibraryDerivedState = ({
   const sourceSummary = useMemo(
     () => ({
       core: mergedExerciseLibrary.filter((exercise) => (exercise.source ?? 'core') === 'core').length,
+      dataset: mergedExerciseLibrary.filter((exercise) => exercise.source === 'dataset').length,
       animatic: mergedExerciseLibrary.filter((exercise) => exercise.source === 'animatic').length,
     }),
     [mergedExerciseLibrary],

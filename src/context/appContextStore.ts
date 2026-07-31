@@ -189,8 +189,8 @@ export type AppContextType = {
   setEquipmentFilter: Dispatch<SetStateAction<string>>
   difficultyFilter: 'Todos' | 'beginner' | 'intermediate' | 'advanced'
   setDifficultyFilter: Dispatch<SetStateAction<'Todos' | 'beginner' | 'intermediate' | 'advanced'>>
-  sourceFilter: 'Todos' | 'core' | 'animatic'
-  setSourceFilter: Dispatch<SetStateAction<'Todos' | 'core' | 'animatic'>>
+  sourceFilter: 'Todos' | 'core' | 'animatic' | 'dataset'
+  setSourceFilter: Dispatch<SetStateAction<'Todos' | 'core' | 'animatic' | 'dataset'>>
   filteredExercises: LibraryExercise[]
   quickAddExercises: LibraryExercise[]
   categoryOptions: string[]

@@ -20,6 +20,10 @@ import {
   persistDoneSessions,
   removeStudentFromTrainerData,
   deletedStudentRetentionMs,
+  readStorageAsync,
+  writeStorageAsync,
+  removeStorageAsync,
+  migrateLocalStorageToIndexedDB,
 } from './storage'
 
 beforeEach(() => {
@@ -27,7 +31,7 @@ beforeEach(() => {
 })
 
 // ---------------------------------------------------------------------------
-// readStorage / writeStorage
+// readStorage / writeStorage (Sync & Async)
 // ---------------------------------------------------------------------------
 
 describe('readStorage / writeStorage', () => {
@@ -43,6 +47,27 @@ describe('readStorage / writeStorage', () => {
   it('returns null for corrupted JSON', () => {
     localStorage.setItem('bad', '{not valid json')
     expect(readStorage('bad')).toBeNull()
+  })
+
+  it('round-trips JSON asynchronously', async () => {
+    await writeStorageAsync('async-key', { val: 42 })
+    const result = await readStorageAsync<{ val: number }>('async-key')
+    expect(result).toEqual({ val: 42 })
+  })
+
+  it('removes key asynchronously', async () => {
+    await writeStorageAsync('to-remove', { x: 1 })
+    await removeStorageAsync('to-remove')
+    const result = await readStorageAsync('to-remove')
+    expect(result).toBeNull()
+  })
+})
+
+describe('migrateLocalStorageToIndexedDB', () => {
+  it('migrates legacy localStorage keys gracefully', async () => {
+    localStorage.setItem('insanefit:data:v1:user1', JSON.stringify({ migrated: true }))
+    const success = await migrateLocalStorageToIndexedDB()
+    expect(success).toBe(true)
   })
 })
 

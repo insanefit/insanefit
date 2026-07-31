@@ -1,3 +1,30 @@
+create table if not exists global_exercises (
+  id text primary key,
+  name text not null,
+  original_name text,
+  muscle_group text not null,
+  category text not null,
+  equipment text not null,
+  target text not null,
+  image_url text not null,
+  gif_url text not null,
+  instructions_en text[],
+  instructions_es text[],
+  created_at timestamptz not null default now()
+);
+
+create index if not exists global_exercises_muscle_group_idx on global_exercises(muscle_group);
+create index if not exists global_exercises_target_idx on global_exercises(target);
+create index if not exists global_exercises_equipment_idx on global_exercises(equipment);
+
+alter table global_exercises enable row level security;
+
+drop policy if exists "allow_select_global_exercises" on global_exercises;
+create policy "allow_select_global_exercises"
+  on global_exercises for select
+  to authenticated, anon
+  using (true);
+
 create table if not exists students (
   id text primary key,
   user_id uuid not null references auth.users(id) on delete cascade,

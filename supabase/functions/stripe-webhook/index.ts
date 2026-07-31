@@ -34,10 +34,13 @@ const secureCompare = (left: string, right: string): boolean => {
   return result === 0
 }
 
+const DEFAULT_TOLERANCE_SECONDS = 300
+
 const verifyStripeSignature = async (input: {
   payload: string
   signatureHeader: string
   webhookSecret: string
+  toleranceSeconds?: number
 }): Promise<boolean> => {
   const signatureParts = input.signatureHeader.split(',').map((item) => item.trim())
   const timestamp = signatureParts.find((part) => part.startsWith('t='))?.slice(2)
@@ -47,6 +50,16 @@ const verifyStripeSignature = async (input: {
     .filter(Boolean)
 
   if (!timestamp || signatures.length === 0) return false
+
+  const eventTimestamp = parseInt(timestamp, 10)
+  if (!Number.isFinite(eventTimestamp)) return false
+
+  const tolerance = input.toleranceSeconds ?? DEFAULT_TOLERANCE_SECONDS
+  const currentTimestamp = Math.floor(Date.now() / 1000)
+
+  if (Math.abs(currentTimestamp - eventTimestamp) > tolerance) {
+    return false
+  }
 
   const signedPayload = `${timestamp}.${input.payload}`
   const key = await crypto.subtle.importKey(

@@ -33,8 +33,10 @@ export type SupabaseErrorLike = {
   message?: string | null
 }
 
+import { getItemAsync, setItemAsync, removeItemAsync } from '../lib/offlineDb'
+
 // ---------------------------------------------------------------------------
-// Generic storage helpers
+// Generic storage helpers (Sync & Async IndexedDB)
 // ---------------------------------------------------------------------------
 
 export const readStorage = <T>(key: string): T | null => {
@@ -47,7 +49,31 @@ export const readStorage = <T>(key: string): T | null => {
 }
 
 export const writeStorage = <T>(key: string, value: T) => {
-  localStorage.setItem(key, JSON.stringify(value))
+  try {
+    localStorage.setItem(key, JSON.stringify(value))
+  } catch {
+    // Ignore quota/disabled errors
+  }
+}
+
+export const readStorageAsync = async <T>(key: string): Promise<T | null> => {
+  const asyncValue = await getItemAsync<T>(key)
+  if (asyncValue !== null) return asyncValue
+  return readStorage<T>(key)
+}
+
+export const writeStorageAsync = async <T>(key: string, value: T): Promise<void> => {
+  writeStorage(key, value)
+  await setItemAsync(key, value)
+}
+
+export const removeStorageAsync = async (key: string): Promise<void> => {
+  try {
+    localStorage.removeItem(key)
+  } catch {
+    // Ignore
+  }
+  await removeItemAsync(key)
 }
 
 export const scopedKey = (base: string, userId?: string): string =>
@@ -71,8 +97,65 @@ export const readScopedStorage = <T>(
   }
 
   writeStorage(currentKey, legacyValue)
-  localStorage.removeItem(legacyKey)
+  try {
+    localStorage.removeItem(legacyKey)
+  } catch {
+    // Ignore
+  }
   return legacyValue
+}
+
+export const readScopedStorageAsync = async <T>(
+  currentBase: string,
+  legacyBase: string,
+  userId?: string,
+): Promise<T | null> => {
+  const currentKey = scopedKey(currentBase, userId)
+  const currentValue = await readStorageAsync<T>(currentKey)
+  if (currentValue) return currentValue
+
+  const legacyKey = scopedKey(legacyBase, userId)
+  const legacyValue = await readStorageAsync<T>(legacyKey)
+  if (!legacyValue) return null
+
+  await writeStorageAsync(currentKey, legacyValue)
+  await removeStorageAsync(legacyKey)
+  return legacyValue
+}
+
+/** Migra chaves do localStorage para IndexedDB automaticamente */
+export const migrateLocalStorageToIndexedDB = async (): Promise<boolean> => {
+  try {
+    const isMigrated = await getItemAsync<boolean>('insanefit_migrated_v1', 'migration_meta')
+    if (isMigrated) return true
+
+    if (typeof localStorage !== 'undefined') {
+      const keysToMigrate: string[] = []
+      for (let i = 0; i < localStorage.length; i += 1) {
+        const key = localStorage.key(i)
+        if (key && (key.startsWith('insanefit:') || key.startsWith('pulsecoach:'))) {
+          keysToMigrate.push(key)
+        }
+      }
+
+      for (const key of keysToMigrate) {
+        const raw = localStorage.getItem(key)
+        if (raw) {
+          try {
+            const parsed = JSON.parse(raw)
+            await setItemAsync(key, parsed)
+          } catch {
+            await setItemAsync(key, raw)
+          }
+        }
+      }
+    }
+
+    await setItemAsync('insanefit_migrated_v1', true, 'migration_meta')
+    return true
+  } catch {
+    return false
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -173,11 +256,22 @@ export const persistLocalTrainerData = (data: TrainerData, userId?: string) => {
   writeStorage(scopedKey(dataStorageKey, userId), data)
 }
 
+export const persistLocalTrainerDataAsync = async (data: TrainerData, userId?: string): Promise<void> => {
+  await writeStorageAsync(scopedKey(dataStorageKey, userId), data)
+}
+
 export const loadDoneSessions = (userId?: string): string[] =>
   readScopedStorage<string[]>(doneStorageKey, legacyDoneStorageKey, userId) ?? []
 
+export const loadDoneSessionsAsync = async (userId?: string): Promise<string[]> =>
+  (await readScopedStorageAsync<string[]>(doneStorageKey, legacyDoneStorageKey, userId)) ?? []
+
 export const persistDoneSessions = (doneSessions: string[], userId?: string) => {
   writeStorage(scopedKey(doneStorageKey, userId), doneSessions)
+}
+
+export const persistDoneSessionsAsync = async (doneSessions: string[], userId?: string): Promise<void> => {
+  await writeStorageAsync(scopedKey(doneStorageKey, userId), doneSessions)
 }
 
 // ---------------------------------------------------------------------------

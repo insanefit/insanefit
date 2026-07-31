@@ -264,7 +264,21 @@ export function AuthScreen() {
             </>
           )}
 
-          {authMessage && <p className="status-line">{authMessage}</p>}
+          {authMessage && (
+            <div className="auth-message-block">
+              <p className="status-line">{authMessage}</p>
+              {(authMessage.includes('Servidor de login indisponivel') || authMessage.includes('Supabase')) && (
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  style={{ marginTop: '0.75rem', width: '100%' }}
+                  onClick={handleEnterLocalMode}
+                >
+                  ENTRAR NO MODO LOCAL (OFFLINE)
+                </button>
+              )}
+            </div>
+          )}
         </section>
       </div>
     </div>

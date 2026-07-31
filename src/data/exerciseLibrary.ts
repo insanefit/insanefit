@@ -1,11 +1,20 @@
+import { generatedDatasetExercises } from './generatedDatasetExercises';
+export type { DatasetExercise } from './generatedDatasetExercises';
+
 export interface LibraryExercise {
   id: string;
   name: string;
+  originalName?: string;
   muscleGroup: string;
   category: string;
   equipment: string;
   difficulty: 'beginner' | 'intermediate' | 'advanced';
-  source?: 'core' | 'animatic';
+  source?: 'core' | 'animatic' | 'dataset';
+  target?: string;
+  gifUrl?: string;
+  imageUrl?: string;
+  instructionsEn?: string[];
+  instructionsEs?: string[];
 }
 
 export const muscleGroups = [
@@ -23,7 +32,7 @@ export const muscleGroups = [
   'Funcional',
 ] as const;
 
-export const exerciseLibrary: LibraryExercise[] = [
+export const coreExercises: LibraryExercise[] = [
   // PEITO
   { id: 'ex-001', name: 'Supino Reto (Barra)', muscleGroup: 'Peito', category: 'Composto', equipment: 'Barra', difficulty: 'beginner' },
   { id: 'ex-002', name: 'Supino Inclinado (Barra)', muscleGroup: 'Peito', category: 'Composto', equipment: 'Barra', difficulty: 'beginner' },
@@ -229,6 +238,11 @@ export const exerciseLibrary: LibraryExercise[] = [
   { id: 'ex-1114', name: 'Farmer Walk', muscleGroup: 'Funcional', category: 'Composto', equipment: 'Halter', difficulty: 'beginner' },
   { id: 'ex-1115', name: 'Wall Ball', muscleGroup: 'Funcional', category: 'Composto', equipment: 'Medicine Ball', difficulty: 'beginner' },
   { id: 'ex-1116', name: 'Prowler Push', muscleGroup: 'Funcional', category: 'Composto', equipment: 'Prowler', difficulty: 'advanced' },
+];
+
+export const exerciseLibrary: LibraryExercise[] = [
+  ...coreExercises,
+  ...(generatedDatasetExercises as LibraryExercise[]),
 ];
 
 export const getExercisesByMuscleGroup = (group: string) =>

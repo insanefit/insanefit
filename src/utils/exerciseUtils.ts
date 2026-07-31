@@ -112,19 +112,17 @@ export const getExerciseDisplayName = (exerciseName: string): string => {
 // ---------------------------------------------------------------------------
 
 let _mergedExerciseLibrary: LibraryExercise[] | null = null
-let _animaticData: LibraryExercise[] | null = null
-let _animaticLoading = false
 
 export const loadBundledExerciseVideoMap = async (): Promise<Record<string, ExerciseVideoAttachment>> => {
   return {}
 }
 
-function rebuildMergedLibrary(animatic: LibraryExercise[]): LibraryExercise[] {
+function rebuildMergedLibrary(animatic: LibraryExercise[] = []): LibraryExercise[] {
   const seen = new Set<string>()
   const merged: LibraryExercise[] = []
 
   ;[
-    ...coreExerciseLibrary.map((item) => ({ ...item, source: 'core' as const })),
+    ...coreExerciseLibrary.map((item) => ({ ...item, source: (item.source ?? 'core') })),
     ...animatic,
   ].forEach((item) => {
     const key = normalizeExerciseKey(item.name)
@@ -140,35 +138,11 @@ function rebuildMergedLibrary(animatic: LibraryExercise[]): LibraryExercise[] {
 
 export const getMergedExerciseLibrary = (): LibraryExercise[] => {
   if (_mergedExerciseLibrary) return _mergedExerciseLibrary
-  // Initially merge with only core (fast) — animatic loads async
-  return rebuildMergedLibrary(_animaticData ?? [])
+  return rebuildMergedLibrary()
 }
 
-/**
- * Lazily load the heavy 388 KB exerciseAnimaticLibrary.
- * Returns a promise that resolves when the data is merged.
- * Subsequent calls return immediately.
- */
 export const loadAnimaticLibrary = async (): Promise<LibraryExercise[]> => {
-  if (_animaticData) return getMergedExerciseLibrary()
-  if (_animaticLoading) {
-    // already loading — wait for it
-    return new Promise((resolve) => {
-      const check = () => {
-        if (_animaticData) resolve(getMergedExerciseLibrary())
-        else setTimeout(check, 50)
-      }
-      check()
-    })
-  }
-  _animaticLoading = true
-  try {
-    const mod = await import('../data/exerciseAnimaticLibrary')
-    _animaticData = mod.exerciseAnimaticLibrary
-    return rebuildMergedLibrary(_animaticData)
-  } finally {
-    _animaticLoading = false
-  }
+  return getMergedExerciseLibrary()
 }
 
 let _mergedLibraryByKey: Map<string, LibraryExercise> | null = null

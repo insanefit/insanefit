@@ -31,10 +31,40 @@ const json = (status: number, payload: Record<string, unknown>) =>
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   })
 
-const isValidUrl = (value: string): boolean => {
+const isAllowedRedirectUrl = (value: string, reqOrigin?: string | null): boolean => {
   try {
     const url = new URL(value)
-    return url.protocol === 'https:' || url.protocol === 'http:'
+    if (url.protocol !== 'https:' && url.protocol !== 'http:') return false
+
+    const hostname = url.hostname.toLowerCase()
+    if (hostname === 'localhost' || hostname === '127.0.0.1') return true
+
+    const envOrigins = Deno.env.get('ALLOWED_REDIRECT_ORIGINS')
+      ?.split(',')
+      .map((item) => item.trim().toLowerCase())
+      .filter(Boolean) ?? []
+
+    if (envOrigins.length > 0) {
+      return envOrigins.some((origin) => {
+        try {
+          const allowedUrl = new URL(origin)
+          return url.origin.toLowerCase() === allowedUrl.origin.toLowerCase()
+        } catch {
+          return url.hostname.toLowerCase() === origin.toLowerCase()
+        }
+      })
+    }
+
+    if (reqOrigin) {
+      try {
+        const reqUrl = new URL(reqOrigin)
+        if (url.origin.toLowerCase() === reqUrl.origin.toLowerCase()) return true
+      } catch {
+        // Ignore invalid reqOrigin
+      }
+    }
+
+    return false
   } catch {
     return false
   }
@@ -159,7 +189,8 @@ serve(async (req) => {
     return json(400, { error: 'invalid_payload' })
   }
 
-  if (!isValidUrl(body.successUrl) || !isValidUrl(body.cancelUrl)) {
+  const reqOrigin = req.headers.get('origin') ?? req.headers.get('referer')
+  if (!isAllowedRedirectUrl(body.successUrl, reqOrigin) || !isAllowedRedirectUrl(body.cancelUrl, reqOrigin)) {
     return json(400, { error: 'invalid_redirect_urls' })
   }
 
