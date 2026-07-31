@@ -197,15 +197,51 @@ export const resolveExerciseThumbnail = (exercise: LibraryExercise): string | un
     return exercise.imageUrl || exercise.gifUrl
   }
 
-  // Lookup approximate match in dataset for core items
-  const approxMatch = getMergedExerciseLibrary().find((item) => {
-    if (!item.imageUrl && !item.gifUrl) return false
-    const n1 = normalizeExerciseKey(item.name)
-    const n2 = normalizeExerciseKey(exercise.name)
-    return n1.includes(n2) || n2.includes(n1)
-  })
+  // Strip parentheses and equipment descriptors e.g. "Supino Inclinado (Barra)" -> "supino inclinado"
+  const cleanName = exercise.name.replace(/\([^)]*\)/g, '').trim()
+  const cleanKey = normalizeExerciseKey(cleanName)
 
-  return approxMatch?.imageUrl || approxMatch?.gifUrl
+  // 1. Direct match on cleaned key
+  const directMatch = getMergedExerciseLibrary().find((item) => {
+    if (!item.imageUrl && !item.gifUrl) return false
+    const itemKey = normalizeExerciseKey(item.name)
+    return itemKey.includes(cleanKey) || cleanKey.includes(itemKey)
+  })
+  if (directMatch?.imageUrl || directMatch?.gifUrl) {
+    return directMatch.imageUrl || directMatch.gifUrl
+  }
+
+  // 2. Token/Word match (all clean words > 2 chars must match)
+  const cleanWords = cleanKey.split(/\s+/).filter((w) => w.length > 2)
+  if (cleanWords.length > 0) {
+    const tokenMatch = getMergedExerciseLibrary().find((item) => {
+      if (!item.imageUrl && !item.gifUrl) return false
+      const itemKey = normalizeExerciseKey(item.name)
+      const origKey = normalizeExerciseKey(item.originalName ?? '')
+      return cleanWords.every((word) => itemKey.includes(word) || origKey.includes(word))
+    })
+    if (tokenMatch?.imageUrl || tokenMatch?.gifUrl) {
+      return tokenMatch.imageUrl || tokenMatch.gifUrl
+    }
+  }
+
+  // 3. Fallback match by first word + muscle group
+  const firstWord = cleanWords[0]
+  if (firstWord) {
+    const wordGroupMatch = getMergedExerciseLibrary().find((item) => {
+      if (!item.imageUrl && !item.gifUrl) return false
+      return item.muscleGroup === exercise.muscleGroup && normalizeExerciseKey(item.name).includes(firstWord)
+    })
+    if (wordGroupMatch?.imageUrl || wordGroupMatch?.gifUrl) {
+      return wordGroupMatch.imageUrl || wordGroupMatch.gifUrl
+    }
+  }
+
+  // 4. Fallback to any dataset item matching muscle group
+  const groupMatch = getMergedExerciseLibrary().find(
+    (item) => (item.imageUrl || item.gifUrl) && item.muscleGroup === exercise.muscleGroup,
+  )
+  return groupMatch?.imageUrl || groupMatch?.gifUrl
 }
 
 // Re-export para uso interno dos hooks
