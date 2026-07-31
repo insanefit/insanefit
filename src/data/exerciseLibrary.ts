@@ -32,7 +32,10 @@ export const muscleGroups = [
   'Funcional',
 ] as const;
 
-export const coreExercises: LibraryExercise[] = [
+const normalizeKey = (val: string) =>
+  val.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, ' ').trim()
+
+const rawCoreExercises: LibraryExercise[] = [
   // PEITO
   { id: 'ex-001', name: 'Supino Reto (Barra)', muscleGroup: 'Peito', category: 'Composto', equipment: 'Barra', difficulty: 'beginner' },
   { id: 'ex-002', name: 'Supino Inclinado (Barra)', muscleGroup: 'Peito', category: 'Composto', equipment: 'Barra', difficulty: 'beginner' },
@@ -98,104 +101,68 @@ export const coreExercises: LibraryExercise[] = [
   { id: 'ex-307', name: 'Rosca Inclinada (Halter)', muscleGroup: 'Biceps', category: 'Isolamento', equipment: 'Halter', difficulty: 'beginner' },
   { id: 'ex-308', name: 'Rosca na Polia Baixa (Barra)', muscleGroup: 'Biceps', category: 'Isolamento', equipment: 'Cabos', difficulty: 'beginner' },
   { id: 'ex-309', name: 'Rosca na Polia Baixa (Cordas)', muscleGroup: 'Biceps', category: 'Isolamento', equipment: 'Cabos', difficulty: 'beginner' },
-  { id: 'ex-310', name: 'Rosca 21s', muscleGroup: 'Biceps', category: 'Isolamento', equipment: 'Barra', difficulty: 'intermediate' },
+  { id: 'ex-310', name: 'Rosca 21', muscleGroup: 'Biceps', category: 'Isolamento', equipment: 'Barra', difficulty: 'intermediate' },
   { id: 'ex-311', name: 'Rosca Spider (Halter)', muscleGroup: 'Biceps', category: 'Isolamento', equipment: 'Halter', difficulty: 'intermediate' },
-  { id: 'ex-312', name: 'Rosca com Pegada Fechada', muscleGroup: 'Biceps', category: 'Isolamento', equipment: 'Barra', difficulty: 'beginner' },
-  { id: 'ex-313', name: 'Rosca no Banco Scott (Maquina)', muscleGroup: 'Biceps', category: 'Isolamento', equipment: 'Maquina', difficulty: 'beginner' },
-  { id: 'ex-314', name: 'Rosca Unilateral (Cabos)', muscleGroup: 'Biceps', category: 'Isolamento', equipment: 'Cabos', difficulty: 'beginner' },
-  { id: 'ex-315', name: 'Rosca com Elastico', muscleGroup: 'Biceps', category: 'Isolamento', equipment: 'Elastico', difficulty: 'beginner' },
+  { id: 'ex-312', name: 'Rosca Inversa (Barra)', muscleGroup: 'Biceps', category: 'Isolamento', equipment: 'Barra', difficulty: 'beginner' },
 
   // TRICEPS
-  { id: 'ex-401', name: 'Triceps Testa (Barra W)', muscleGroup: 'Triceps', category: 'Isolamento', equipment: 'Barra', difficulty: 'beginner' },
-  { id: 'ex-402', name: 'Triceps Testa (Halter)', muscleGroup: 'Triceps', category: 'Isolamento', equipment: 'Halter', difficulty: 'beginner' },
-  { id: 'ex-403', name: 'Triceps Frances (Halter)', muscleGroup: 'Triceps', category: 'Isolamento', equipment: 'Halter', difficulty: 'beginner' },
-  { id: 'ex-404', name: 'Triceps na Polia Alta (Barra)', muscleGroup: 'Triceps', category: 'Isolamento', equipment: 'Cabos', difficulty: 'beginner' },
-  { id: 'ex-405', name: 'Triceps na Polia Alta (Cordas)', muscleGroup: 'Triceps', category: 'Isolamento', equipment: 'Cabos', difficulty: 'beginner' },
-  { id: 'ex-406', name: 'Mergulho no Banco (Bench Dip)', muscleGroup: 'Triceps', category: 'Isolamento', equipment: 'Peso Corporal', difficulty: 'beginner' },
-  { id: 'ex-407', name: 'Mergulho (Paralelas)', muscleGroup: 'Triceps', category: 'Composto', equipment: 'Peso Corporal', difficulty: 'intermediate' },
-  { id: 'ex-408', name: 'Supino Fechado', muscleGroup: 'Triceps', category: 'Composto', equipment: 'Barra', difficulty: 'intermediate' },
-  { id: 'ex-409', name: 'Kickback (Halter)', muscleGroup: 'Triceps', category: 'Isolamento', equipment: 'Halter', difficulty: 'beginner' },
-  { id: 'ex-410', name: 'Kickback (Cabos)', muscleGroup: 'Triceps', category: 'Isolamento', equipment: 'Cabos', difficulty: 'beginner' },
-  { id: 'ex-411', name: 'Triceps com Elastico', muscleGroup: 'Triceps', category: 'Isolamento', equipment: 'Elastico', difficulty: 'beginner' },
-  { id: 'ex-412', name: 'Triceps Unilateral (Cabos)', muscleGroup: 'Triceps', category: 'Isolamento', equipment: 'Cabos', difficulty: 'beginner' },
-  { id: 'ex-413', name: 'Triceps Maquina', muscleGroup: 'Triceps', category: 'Isolamento', equipment: 'Maquina', difficulty: 'beginner' },
-  { id: 'ex-414', name: 'Triceps Pike (Peso Corporal)', muscleGroup: 'Triceps', category: 'Isolamento', equipment: 'Peso Corporal', difficulty: 'intermediate' },
-  { id: 'ex-415', name: 'Triceps Diamond Push-up', muscleGroup: 'Triceps', category: 'Composto', equipment: 'Peso Corporal', difficulty: 'intermediate' },
+  { id: 'ex-401', name: 'Triceps Pulley (Barra Reta)', muscleGroup: 'Triceps', category: 'Isolamento', equipment: 'Cabos', difficulty: 'beginner' },
+  { id: 'ex-402', name: 'Triceps Pulley (Corda)', muscleGroup: 'Triceps', category: 'Isolamento', equipment: 'Cabos', difficulty: 'beginner' },
+  { id: 'ex-403', name: 'Triceps Testa (Barra W)', muscleGroup: 'Triceps', category: 'Isolamento', equipment: 'Barra', difficulty: 'intermediate' },
+  { id: 'ex-404', name: 'Triceps Frances (Halter)', muscleGroup: 'Triceps', category: 'Isolamento', equipment: 'Halter', difficulty: 'beginner' },
+  { id: 'ex-405', name: 'Triceps Coice (Halter)', muscleGroup: 'Triceps', category: 'Isolamento', equipment: 'Halter', difficulty: 'beginner' },
+  { id: 'ex-406', name: 'Triceps Coice no Cabo', muscleGroup: 'Triceps', category: 'Isolamento', equipment: 'Cabos', difficulty: 'beginner' },
+  { id: 'ex-407', name: 'Triceps Mergulho no Banco', muscleGroup: 'Triceps', category: 'Composto', equipment: 'Banco', difficulty: 'beginner' },
+  { id: 'ex-408', name: 'Triceps na Maquina', muscleGroup: 'Triceps', category: 'Isolamento', equipment: 'Maquina', difficulty: 'beginner' },
+  { id: 'ex-409', name: 'Triceps Frances na Polia', muscleGroup: 'Triceps', category: 'Isolamento', equipment: 'Cabos', difficulty: 'intermediate' },
+  { id: 'ex-410', name: 'Triceps Unilateral no Cabo', muscleGroup: 'Triceps', category: 'Isolamento', equipment: 'Cabos', difficulty: 'beginner' },
 
   // PERNAS
   { id: 'ex-501', name: 'Agachamento Livre (Barra)', muscleGroup: 'Pernas', category: 'Composto', equipment: 'Barra', difficulty: 'intermediate' },
-  { id: 'ex-502', name: 'Agachamento Frontal', muscleGroup: 'Pernas', category: 'Composto', equipment: 'Barra', difficulty: 'advanced' },
-  { id: 'ex-503', name: 'Agachamento Hack (Maquina)', muscleGroup: 'Pernas', category: 'Composto', equipment: 'Maquina', difficulty: 'beginner' },
-  { id: 'ex-504', name: 'Agachamento Smith', muscleGroup: 'Pernas', category: 'Composto', equipment: 'Smith', difficulty: 'beginner' },
-  { id: 'ex-505', name: 'Agachamento Bulgaro', muscleGroup: 'Pernas', category: 'Composto', equipment: 'Halter', difficulty: 'intermediate' },
-  { id: 'ex-506', name: 'Agachamento Sumo', muscleGroup: 'Pernas', category: 'Composto', equipment: 'Halter', difficulty: 'intermediate' },
-  { id: 'ex-507', name: 'Agachamento com Peso Corporal', muscleGroup: 'Pernas', category: 'Composto', equipment: 'Peso Corporal', difficulty: 'beginner' },
-  { id: 'ex-508', name: 'Leg Press 45°', muscleGroup: 'Pernas', category: 'Composto', equipment: 'Maquina', difficulty: 'beginner' },
-  { id: 'ex-509', name: 'Leg Press Horizontal', muscleGroup: 'Pernas', category: 'Composto', equipment: 'Maquina', difficulty: 'beginner' },
-  { id: 'ex-510', name: 'Cadeira Extensora', muscleGroup: 'Pernas', category: 'Isolamento', equipment: 'Maquina', difficulty: 'beginner' },
-  { id: 'ex-511', name: 'Mesa Flexora', muscleGroup: 'Pernas', category: 'Isolamento', equipment: 'Maquina', difficulty: 'beginner' },
-  { id: 'ex-512', name: 'Cadeira Flexora', muscleGroup: 'Pernas', category: 'Isolamento', equipment: 'Maquina', difficulty: 'beginner' },
-  { id: 'ex-513', name: 'Avanco (Lunge) com Halteres', muscleGroup: 'Pernas', category: 'Composto', equipment: 'Halter', difficulty: 'beginner' },
-  { id: 'ex-514', name: 'Avanco com Barra', muscleGroup: 'Pernas', category: 'Composto', equipment: 'Barra', difficulty: 'intermediate' },
-  { id: 'ex-515', name: 'Avanco Reverso', muscleGroup: 'Pernas', category: 'Composto', equipment: 'Halter', difficulty: 'beginner' },
-  { id: 'ex-516', name: 'Avanco Lateral', muscleGroup: 'Pernas', category: 'Composto', equipment: 'Halter', difficulty: 'intermediate' },
-  { id: 'ex-517', name: 'Passada (Step-up)', muscleGroup: 'Pernas', category: 'Composto', equipment: 'Halter', difficulty: 'beginner' },
-  { id: 'ex-518', name: 'Stiff (Barra)', muscleGroup: 'Pernas', category: 'Composto', equipment: 'Barra', difficulty: 'intermediate' },
-  { id: 'ex-519', name: 'Stiff com Halteres', muscleGroup: 'Pernas', category: 'Composto', equipment: 'Halter', difficulty: 'beginner' },
-  { id: 'ex-520', name: 'Good Morning', muscleGroup: 'Pernas', category: 'Composto', equipment: 'Barra', difficulty: 'advanced' },
-  { id: 'ex-521', name: 'Maquina Abdutora', muscleGroup: 'Pernas', category: 'Isolamento', equipment: 'Maquina', difficulty: 'beginner' },
-  { id: 'ex-522', name: 'Maquina Aduutora', muscleGroup: 'Pernas', category: 'Isolamento', equipment: 'Maquina', difficulty: 'beginner' },
-  { id: 'ex-523', name: 'Sissy Squat', muscleGroup: 'Pernas', category: 'Isolamento', equipment: 'Peso Corporal', difficulty: 'advanced' },
-  { id: 'ex-524', name: 'Box Squat', muscleGroup: 'Pernas', category: 'Composto', equipment: 'Barra', difficulty: 'intermediate' },
-  { id: 'ex-525', name: 'Pistol Squat', muscleGroup: 'Pernas', category: 'Composto', equipment: 'Peso Corporal', difficulty: 'advanced' },
-  { id: 'ex-526', name: 'Hack Squat (Maquina)', muscleGroup: 'Pernas', category: 'Composto', equipment: 'Maquina', difficulty: 'beginner' },
+  { id: 'ex-502', name: 'Agachamento Hack', muscleGroup: 'Pernas', category: 'Composto', equipment: 'Maquina', difficulty: 'beginner' },
+  { id: 'ex-503', name: 'Agachamento Smith', muscleGroup: 'Pernas', category: 'Composto', equipment: 'Smith', difficulty: 'beginner' },
+  { id: 'ex-504', name: 'Agachamento Sumo (Halter)', muscleGroup: 'Pernas', category: 'Composto', equipment: 'Halter', difficulty: 'beginner' },
+  { id: 'ex-505', name: 'Agachamento Bulgaro (Halter)', muscleGroup: 'Pernas', category: 'Composto', equipment: 'Halter', difficulty: 'intermediate' },
+  { id: 'ex-506', name: 'Leg Press 45', muscleGroup: 'Pernas', category: 'Composto', equipment: 'Maquina', difficulty: 'beginner' },
+  { id: 'ex-507', name: 'Leg Press Horizontal', muscleGroup: 'Pernas', category: 'Composto', equipment: 'Maquina', difficulty: 'beginner' },
+  { id: 'ex-508', name: 'Cadeira Extensora', muscleGroup: 'Pernas', category: 'Isolamento', equipment: 'Maquina', difficulty: 'beginner' },
+  { id: 'ex-509', name: 'Mesa Flexora', muscleGroup: 'Pernas', category: 'Isolamento', equipment: 'Maquina', difficulty: 'beginner' },
+  { id: 'ex-510', name: 'Cadeira Flexora', muscleGroup: 'Pernas', category: 'Isolamento', equipment: 'Maquina', difficulty: 'beginner' },
+  { id: 'ex-511', name: 'Flexora Vertical Unilateral', muscleGroup: 'Pernas', category: 'Isolamento', equipment: 'Maquina', difficulty: 'beginner' },
+  { id: 'ex-512', name: 'Stiff (Barra)', muscleGroup: 'Pernas', category: 'Composto', equipment: 'Barra', difficulty: 'intermediate' },
+  { id: 'ex-513', name: 'Stiff (Halter)', muscleGroup: 'Pernas', category: 'Composto', equipment: 'Halter', difficulty: 'beginner' },
+  { id: 'ex-514', name: 'Passada / Avanco (Halter)', muscleGroup: 'Pernas', category: 'Composto', equipment: 'Halter', difficulty: 'intermediate' },
+  { id: 'ex-515', name: 'Afundo (Halter)', muscleGroup: 'Pernas', category: 'Composto', equipment: 'Halter', difficulty: 'beginner' },
+  { id: 'ex-516', name: 'Cadeira Adutora', muscleGroup: 'Pernas', category: 'Isolamento', equipment: 'Maquina', difficulty: 'beginner' },
 
   // GLUTEOS
-  { id: 'ex-601', name: 'Hip Thrust (Barra)', muscleGroup: 'Gluteos', category: 'Composto', equipment: 'Barra', difficulty: 'intermediate' },
-  { id: 'ex-602', name: 'Hip Thrust (Halter)', muscleGroup: 'Gluteos', category: 'Composto', equipment: 'Halter', difficulty: 'beginner' },
-  { id: 'ex-603', name: 'Hip Thrust (Maquina)', muscleGroup: 'Gluteos', category: 'Composto', equipment: 'Maquina', difficulty: 'beginner' },
-  { id: 'ex-604', name: 'Ponte de Gluteos', muscleGroup: 'Gluteos', category: 'Isolamento', equipment: 'Peso Corporal', difficulty: 'beginner' },
-  { id: 'ex-605', name: 'Ponte de Gluteos com Peso', muscleGroup: 'Gluteos', category: 'Isolamento', equipment: 'Halter', difficulty: 'intermediate' },
-  { id: 'ex-606', name: 'Coice na Maquina', muscleGroup: 'Gluteos', category: 'Isolamento', equipment: 'Maquina', difficulty: 'beginner' },
-  { id: 'ex-607', name: 'Coice com Cabo', muscleGroup: 'Gluteos', category: 'Isolamento', equipment: 'Cabos', difficulty: 'beginner' },
-  { id: 'ex-608', name: 'Coice com Halter', muscleGroup: 'Gluteos', category: 'Isolamento', equipment: 'Halter', difficulty: 'beginner' },
-  { id: 'ex-609', name: 'Levantamento Terra Romeno', muscleGroup: 'Gluteos', category: 'Composto', equipment: 'Halter', difficulty: 'intermediate' },
-  { id: 'ex-610', name: 'Passada Curtsy', muscleGroup: 'Gluteos', category: 'Composto', equipment: 'Halter', difficulty: 'intermediate' },
-  { id: 'ex-611', name: 'Fire Hydrant', muscleGroup: 'Gluteos', category: 'Isolamento', equipment: 'Peso Corporal', difficulty: 'beginner' },
-  { id: 'ex-612', name: 'Donkey Kick', muscleGroup: 'Gluteos', category: 'Isolamento', equipment: 'Peso Corporal', difficulty: 'beginner' },
-  { id: 'ex-613', name: 'Clam Shell', muscleGroup: 'Gluteos', category: 'Isolamento', equipment: 'Elastico', difficulty: 'beginner' },
+  { id: 'ex-601', name: 'Elevacao Pelvica (Barra)', muscleGroup: 'Gluteos', category: 'Composto', equipment: 'Barra', difficulty: 'intermediate' },
+  { id: 'ex-602', name: 'Elevacao Pelvica na Maquina', muscleGroup: 'Gluteos', category: 'Composto', equipment: 'Maquina', difficulty: 'beginner' },
+  { id: 'ex-603', name: 'Cadeira Abdutora', muscleGroup: 'Gluteos', category: 'Isolamento', equipment: 'Maquina', difficulty: 'beginner' },
+  { id: 'ex-604', name: 'Coice de Gluteo na Polia', muscleGroup: 'Gluteos', category: 'Isolamento', equipment: 'Cabos', difficulty: 'beginner' },
+  { id: 'ex-605', name: 'Coice de Gluteo na Maquina', muscleGroup: 'Gluteos', category: 'Isolamento', equipment: 'Maquina', difficulty: 'beginner' },
+  { id: 'ex-606', name: 'Abducao de Quadril com Elastico', muscleGroup: 'Gluteos', category: 'Isolamento', equipment: 'Elastico', difficulty: 'beginner' },
+  { id: 'ex-607', name: 'Gluteo Caneleira 4 Apoios', muscleGroup: 'Gluteos', category: 'Isolamento', equipment: 'Caneleira', difficulty: 'beginner' },
 
   // PANTURRILHA
-  { id: 'ex-701', name: 'Panturrilha em Pe (Maquina)', muscleGroup: 'Panturrilha', category: 'Isolamento', equipment: 'Maquina', difficulty: 'beginner' },
-  { id: 'ex-702', name: 'Panturrilha em Pe (Barra)', muscleGroup: 'Panturrilha', category: 'Isolamento', equipment: 'Barra', difficulty: 'beginner' },
-  { id: 'ex-703', name: 'Panturrilha em Pe (Halter)', muscleGroup: 'Panturrilha', category: 'Isolamento', equipment: 'Halter', difficulty: 'beginner' },
-  { id: 'ex-704', name: 'Panturrilha Sentado', muscleGroup: 'Panturrilha', category: 'Isolamento', equipment: 'Maquina', difficulty: 'beginner' },
-  { id: 'ex-705', name: 'Panturrilha na Leg Press', muscleGroup: 'Panturrilha', category: 'Isolamento', equipment: 'Maquina', difficulty: 'beginner' },
-  { id: 'ex-706', name: 'Panturrilha no Degrau', muscleGroup: 'Panturrilha', category: 'Isolamento', equipment: 'Peso Corporal', difficulty: 'beginner' },
-  { id: 'ex-707', name: 'Panturrilha em Pe Unilateral', muscleGroup: 'Panturrilha', category: 'Isolamento', equipment: 'Halter', difficulty: 'beginner' },
-  { id: 'ex-708', name: 'Tibial Anterior (Maquina)', muscleGroup: 'Panturrilha', category: 'Isolamento', equipment: 'Maquina', difficulty: 'beginner' },
+  { id: 'ex-701', name: 'Gemeos em Pe (Maquina)', muscleGroup: 'Panturrilha', category: 'Isolamento', equipment: 'Maquina', difficulty: 'beginner' },
+  { id: 'ex-702', name: 'Gemeos Sentado (Maquina)', muscleGroup: 'Panturrilha', category: 'Isolamento', equipment: 'Maquina', difficulty: 'beginner' },
+  { id: 'ex-703', name: 'Panturrilha no Leg Press 45', muscleGroup: 'Panturrilha', category: 'Isolamento', equipment: 'Maquina', difficulty: 'beginner' },
+  { id: 'ex-704', name: 'Panturrilha em Pe Unilateral', muscleGroup: 'Panturrilha', category: 'Isolamento', equipment: 'Peso Corporal', difficulty: 'beginner' },
+  { id: 'ex-705', name: 'Gemeos no Smith', muscleGroup: 'Panturrilha', category: 'Isolamento', equipment: 'Smith', difficulty: 'beginner' },
 
   // ABDOMEN
-  { id: 'ex-801', name: 'Crunch Abdominal', muscleGroup: 'Abdomen', category: 'Isolamento', equipment: 'Peso Corporal', difficulty: 'beginner' },
-  { id: 'ex-802', name: 'Crunch na Maquina', muscleGroup: 'Abdomen', category: 'Isolamento', equipment: 'Maquina', difficulty: 'beginner' },
-  { id: 'ex-803', name: 'Crunch na Polia', muscleGroup: 'Abdomen', category: 'Isolamento', equipment: 'Cabos', difficulty: 'beginner' },
-  { id: 'ex-804', name: 'Prancha (Plank)', muscleGroup: 'Abdomen', category: 'Isolamento', equipment: 'Peso Corporal', difficulty: 'beginner' },
-  { id: 'ex-805', name: 'Prancha Lateral', muscleGroup: 'Abdomen', category: 'Isolamento', equipment: 'Peso Corporal', difficulty: 'beginner' },
-  { id: 'ex-806', name: 'Prancha com Elevacao', muscleGroup: 'Abdomen', category: 'Isolamento', equipment: 'Peso Corporal', difficulty: 'intermediate' },
-  { id: 'ex-807', name: 'Eleicao de Pernas', muscleGroup: 'Abdomen', category: 'Isolamento', equipment: 'Peso Corporal', difficulty: 'beginner' },
-  { id: 'ex-808', name: 'Eleicao de Pernas no Banco', muscleGroup: 'Abdomen', category: 'Isolamento', equipment: 'Peso Corporal', difficulty: 'beginner' },
-  { id: 'ex-809', name: 'Eleicao de Pernas na Maquina', muscleGroup: 'Abdomen', category: 'Isolamento', equipment: 'Maquina', difficulty: 'beginner' },
-  { id: 'ex-810', name: 'Russian Twist (Halter)', muscleGroup: 'Abdomen', category: 'Isolamento', equipment: 'Halter', difficulty: 'beginner' },
-  { id: 'ex-811', name: 'Bicicleta (Bicycle Crunch)', muscleGroup: 'Abdomen', category: 'Isolamento', equipment: 'Peso Corporal', difficulty: 'beginner' },
-  { id: 'ex-812', name: 'Mountain Climbers', muscleGroup: 'Abdomen', category: 'Isolamento', equipment: 'Peso Corporal', difficulty: 'beginner' },
-  { id: 'ex-813', name: 'Dead Bug', muscleGroup: 'Abdomen', category: 'Isolamento', equipment: 'Peso Corporal', difficulty: 'beginner' },
-  { id: 'ex-814', name: 'Toe Touch', muscleGroup: 'Abdomen', category: 'Isolamento', equipment: 'Peso Corporal', difficulty: 'beginner' },
-  { id: 'ex-815', name: 'Hollow Body Hold', muscleGroup: 'Abdomen', category: 'Isolamento', equipment: 'Peso Corporal', difficulty: 'intermediate' },
-  { id: 'ex-816', name: 'L-sit (Paralelas)', muscleGroup: 'Abdomen', category: 'Isolamento', equipment: 'Paralelas', difficulty: 'advanced' },
-  { id: 'ex-817', name: 'Dragon Flag', muscleGroup: 'Abdomen', category: 'Isolamento', equipment: 'Peso Corporal', difficulty: 'advanced' },
-  { id: 'ex-818', name: 'Ab Wheel', muscleGroup: 'Abdomen', category: 'Isolamento', equipment: 'Ab Wheel', difficulty: 'intermediate' },
-  { id: 'ex-819', name: 'Suspended Pikes (TRX)', muscleGroup: 'Abdomen', category: 'Isolamento', equipment: 'TRX', difficulty: 'advanced' },
-  { id: 'ex-820', name: 'V-ups', muscleGroup: 'Abdomen', category: 'Isolamento', equipment: 'Peso Corporal', difficulty: 'intermediate' },
+  { id: 'ex-801', name: 'Abdominal Supra (Solo)', muscleGroup: 'Abdomen', category: 'Isolamento', equipment: 'Peso Corporal', difficulty: 'beginner' },
+  { id: 'ex-802', name: 'Abdominal Infra (Elevação de Pernas)', muscleGroup: 'Abdomen', category: 'Isolamento', equipment: 'Peso Corporal', difficulty: 'beginner' },
+  { id: 'ex-803', name: 'Abdominal Infra na Barra Fixa', muscleGroup: 'Abdomen', category: 'Isolamento', equipment: 'Peso Corporal', difficulty: 'intermediate' },
+  { id: 'ex-804', name: 'Abdominal Remador', muscleGroup: 'Abdomen', category: 'Isolamento', equipment: 'Peso Corporal', difficulty: 'beginner' },
+  { id: 'ex-805', name: 'Prancha Frontal (Isometria)', muscleGroup: 'Abdomen', category: 'Isolamento', equipment: 'Peso Corporal', difficulty: 'beginner' },
+  { id: 'ex-806', name: 'Prancha Lateral', muscleGroup: 'Abdomen', category: 'Isolamento', equipment: 'Peso Corporal', difficulty: 'beginner' },
+  { id: 'ex-807', name: 'Abdominal Obliquo (Cruzado)', muscleGroup: 'Abdomen', category: 'Isolamento', equipment: 'Peso Corporal', difficulty: 'beginner' },
+  { id: 'ex-808', name: 'Abdominal na Polia (Rope Crunch)', muscleGroup: 'Abdomen', category: 'Isolamento', equipment: 'Cabos', difficulty: 'beginner' },
+  { id: 'ex-809', name: 'Abdominal na Maquina', muscleGroup: 'Abdomen', category: 'Isolamento', equipment: 'Maquina', difficulty: 'beginner' },
+  { id: 'ex-810', name: 'Roda Abdominal (Ab Wheel)', muscleGroup: 'Abdomen', category: 'Isolamento', equipment: 'Roda Abdominal', difficulty: 'intermediate' },
+  { id: 'ex-811', name: 'Russian Twist (Com Carga)', muscleGroup: 'Abdomen', category: 'Isolamento', equipment: 'Halter', difficulty: 'intermediate' },
 
   // LOMBAR
   { id: 'ex-901', name: 'Hiperextensao Lombar', muscleGroup: 'Lombar', category: 'Isolamento', equipment: 'Banco 45', difficulty: 'beginner' },
@@ -239,6 +206,24 @@ export const coreExercises: LibraryExercise[] = [
   { id: 'ex-1115', name: 'Wall Ball', muscleGroup: 'Funcional', category: 'Composto', equipment: 'Medicine Ball', difficulty: 'beginner' },
   { id: 'ex-1116', name: 'Prowler Push', muscleGroup: 'Funcional', category: 'Composto', equipment: 'Prowler', difficulty: 'advanced' },
 ];
+
+export const coreExercises: LibraryExercise[] = rawCoreExercises.map((exercise) => {
+  const cleanName = exercise.name.replace(/\([^)]*\)/g, '').trim()
+  const cleanKey = normalizeKey(cleanName)
+
+  const match = (generatedDatasetExercises as LibraryExercise[]).find((ds) => {
+    const dsKey = normalizeKey(ds.name)
+    const dsOrig = normalizeKey(ds.originalName ?? '')
+    return dsKey.includes(cleanKey) || cleanKey.includes(dsKey) || dsOrig.includes(cleanKey)
+  }) ?? (generatedDatasetExercises as LibraryExercise[]).find((ds) => ds.muscleGroup === exercise.muscleGroup)
+
+  return {
+    ...exercise,
+    source: 'core',
+    imageUrl: exercise.imageUrl || match?.imageUrl,
+    gifUrl: exercise.gifUrl || match?.gifUrl,
+  }
+});
 
 export const exerciseLibrary: LibraryExercise[] = [
   ...coreExercises,

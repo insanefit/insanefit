@@ -233,7 +233,7 @@ export function WorkoutBuilderLibrary(props: WorkoutBuilderLibraryProps) {
                 <div className="library-actions">
                   {manualVideo && <span className="library-video-tag">Video</span>}
                   <button type="button" className="btn-secondary" onClick={() => handleEditExerciseVideo(exercise)}>
-                    {manualVideo ? 'Editar video' : 'Add video'}
+                    {manualVideo ? 'Editar YouTube' : 'Vincular YouTube'}
                   </button>
                   <button type="button" className={alreadyInDraft ? 'btn-secondary' : 'btn-primary'} onClick={() => handleAddExerciseToDraft(exercise, activeDraftDay, activeDraftRoutine, activeDraftRoutineLabel)} disabled={alreadyInDraft}>{alreadyInDraft ? 'Adicionado' : 'Adicionar'}</button>
                 </div>
