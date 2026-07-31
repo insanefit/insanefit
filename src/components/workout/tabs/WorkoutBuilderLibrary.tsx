@@ -4,7 +4,7 @@ import type { ExerciseVideoAttachment, ExerciseVideoCloudStatus, DemoViewerOptio
 import type { WorkoutDraftItem } from '../../../types/workout'
 import type { WorkoutTemplate } from '../../../constants/workoutTemplates'
 import type { VideoAttachmentFormState } from '../../../context/appContextStore'
-import { getExerciseVideoAttachment, resolveExerciseThumbnail } from '../../../utils/exerciseUtils'
+import { resolveExerciseThumbnail } from '../../../utils/exerciseUtils'
 
 export type WorkoutBuilderLibraryProps = {
   workoutDraft: WorkoutDraftItem[]
@@ -85,7 +85,7 @@ export function WorkoutBuilderLibrary(props: WorkoutBuilderLibraryProps) {
     difficultyFilter, setDifficultyFilter, sourceFilter, setSourceFilter,
     filteredExercises, quickAddExercises, categoryOptions, equipmentOptions, sourceSummary,
     demoExercise, activeDemoOption, videoAttachmentForm, setVideoAttachmentForm,
-    exerciseVideoCloudStatus, exerciseVideoMap,
+    exerciseVideoCloudStatus,
     handleSaveVideoAttachment, handleRemoveVideoAttachment,
     handleAddExerciseToDraft, handleQuickAddExercise, handleApplyWorkoutTemplate,
     quickAddExerciseName, setQuickAddExerciseName,
@@ -93,7 +93,7 @@ export function WorkoutBuilderLibrary(props: WorkoutBuilderLibraryProps) {
     showAdvancedLibraryTools, setShowAdvancedLibraryTools,
     activeDraftDay, activeDraftRoutine, activeDraftRoutineLabel, draftNameKeys, draftMatchCount,
     totalLibraryPages, safeLibraryPage, visibleLibraryExercises, visiblePages,
-    handleClearLibraryFilters, handleOpenManualCreate, handleEditExerciseVideo,
+    handleClearLibraryFilters, handleOpenManualCreate,
     extractYoutubeVideoId, buildYoutubeThumbUrl,
     muscleGroups, mergedExerciseLibrary, workoutTemplates,
     getExerciseDisplayName, renderDemoMedia, libraryExercises,
@@ -211,7 +211,6 @@ export function WorkoutBuilderLibrary(props: WorkoutBuilderLibraryProps) {
         <div className="library-list compact-list">
           {visibleLibraryExercises.map((exercise) => {
             const alreadyInDraft = draftNameKeys.has(exercise.name.trim().toLowerCase())
-            const manualVideo = getExerciseVideoAttachment(exercise.name, exerciseVideoMap)
             const thumbUrl = resolveExerciseThumbnail(exercise)
             return (
               <article key={exercise.id} className="library-item mfit-card">
