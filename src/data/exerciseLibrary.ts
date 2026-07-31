@@ -1,4 +1,5 @@
 import { generatedDatasetExercises } from './generatedDatasetExercises';
+import { coreExerciseMediaById } from './coreExerciseMediaMap';
 export type { DatasetExercise } from './generatedDatasetExercises';
 
 export interface LibraryExercise {
@@ -31,9 +32,6 @@ export const muscleGroups = [
   'Cardio',
   'Funcional',
 ] as const;
-
-const normalizeKey = (val: string) =>
-  val.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, ' ').trim()
 
 const rawCoreExercises: LibraryExercise[] = [
   // PEITO
@@ -208,20 +206,12 @@ const rawCoreExercises: LibraryExercise[] = [
 ];
 
 export const coreExercises: LibraryExercise[] = rawCoreExercises.map((exercise) => {
-  const cleanName = exercise.name.replace(/\([^)]*\)/g, '').trim()
-  const cleanKey = normalizeKey(cleanName)
-
-  const match = (generatedDatasetExercises as LibraryExercise[]).find((ds) => {
-    const dsKey = normalizeKey(ds.name)
-    const dsOrig = normalizeKey(ds.originalName ?? '')
-    return dsKey.includes(cleanKey) || cleanKey.includes(dsKey) || dsOrig.includes(cleanKey)
-  }) ?? (generatedDatasetExercises as LibraryExercise[]).find((ds) => ds.muscleGroup === exercise.muscleGroup)
-
+  const media = coreExerciseMediaById[exercise.id]
   return {
     ...exercise,
     source: 'core',
-    imageUrl: exercise.imageUrl || match?.imageUrl,
-    gifUrl: exercise.gifUrl || match?.gifUrl,
+    imageUrl: exercise.imageUrl || media?.imageUrl,
+    gifUrl: exercise.gifUrl || media?.gifUrl,
   }
 });
 
