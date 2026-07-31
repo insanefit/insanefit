@@ -191,6 +191,23 @@ export const findExerciseByApproxName = (rawName: string): LibraryExercise | und
   })
 }
 
+/** Busca imagem/GIF para o exercício. Se não houver direto no item, busca por proximidade no dataset. */
+export const resolveExerciseThumbnail = (exercise: LibraryExercise): string | undefined => {
+  if (exercise.imageUrl || exercise.gifUrl) {
+    return exercise.imageUrl || exercise.gifUrl
+  }
+
+  // Lookup approximate match in dataset for core items
+  const approxMatch = getMergedExerciseLibrary().find((item) => {
+    if (!item.imageUrl && !item.gifUrl) return false
+    const n1 = normalizeExerciseKey(item.name)
+    const n2 = normalizeExerciseKey(exercise.name)
+    return n1.includes(n2) || n2.includes(n1)
+  })
+
+  return approxMatch?.imageUrl || approxMatch?.gifUrl
+}
+
 // Re-export para uso interno dos hooks
 export { getExerciseCoachCue }
 

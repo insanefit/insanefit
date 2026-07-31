@@ -4,7 +4,7 @@ import type { ExerciseVideoAttachment, ExerciseVideoCloudStatus, DemoViewerOptio
 import type { WorkoutDraftItem } from '../../../types/workout'
 import type { WorkoutTemplate } from '../../../constants/workoutTemplates'
 import type { VideoAttachmentFormState } from '../../../context/appContextStore'
-import { getExerciseVideoAttachment } from '../../../utils/exerciseUtils'
+import { getExerciseVideoAttachment, resolveExerciseThumbnail } from '../../../utils/exerciseUtils'
 
 export type WorkoutBuilderLibraryProps = {
   workoutDraft: WorkoutDraftItem[]
@@ -212,11 +212,12 @@ export function WorkoutBuilderLibrary(props: WorkoutBuilderLibraryProps) {
           {visibleLibraryExercises.map((exercise) => {
             const alreadyInDraft = draftNameKeys.has(exercise.name.trim().toLowerCase())
             const manualVideo = getExerciseVideoAttachment(exercise.name, exerciseVideoMap)
+            const thumbUrl = resolveExerciseThumbnail(exercise)
             return (
               <article key={exercise.id} className="library-item mfit-card">
                 <div className="library-thumb library-thumb-static" aria-hidden="true">
-                  {exercise.imageUrl || exercise.gifUrl ? (
-                    <img src={exercise.imageUrl || exercise.gifUrl} alt="" className="exercise-thumb-img" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '4px' }} />
+                  {thumbUrl ? (
+                    <img src={thumbUrl} alt="" className="exercise-thumb-img" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '4px' }} />
                   ) : (
                     <span>{exercise.muscleGroup.slice(0, 3).toUpperCase()}</span>
                   )}
