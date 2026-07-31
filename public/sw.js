@@ -1,4 +1,4 @@
-const CACHE_NAME = 'insanefit-cache-kill-v1'
+const CACHE_NAME = 'insanefit-cache-kill-v2'
 const CACHE_PREFIX = 'insanefit-cache'
 
 const clearInsaneFitCaches = async () => {
